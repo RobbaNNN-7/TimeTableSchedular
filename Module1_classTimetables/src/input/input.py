@@ -1,32 +1,49 @@
-instructorNames = [
 
-    "Syed Imran Ali",
-    "Junaid Yunus",
-    "Khurram Shehzad",
-    "Ansar Shahzadi",
-    "Madiha Khalid",
-    "Ammaar Ahmed"
+from Module1_classTimetables.src.classes import course, instructor,room,sections
+from Module1_classTimetables.src.global_variables import *
+
+""" Hard Coded Inputs
+
+Include:
+        Courses
+        TimeSlots
+        Instructors
+        Rooms
+        Sections
+"""
+
+
+
+courses = [
+
+    course('Math 101'),
+    course('Physics 101'),
+    course('Chemistry 101'),
+    course('Biology 101'),
+    course('CS 101'),
+    course('History 101')
+    
 ]
 
-CourseNames = [
-
-    "Data Structures and Algorithms",
-    "Aritificial Intelligence",
-    "Information Security",
-    "Computer Networks",
-    "Islamyat",
-    "Probability and Statistics"
+time_slots = [
+    "9:00 AM",
+    "10:00 AM",
+    "11:00 AM", 
+    "12:00 PM", 
+    "2:00 PM", 
+    "3:00 PM",
+    "4:00 PM"
 ]
 
-TimeSlots = [
+rooms = [room(i) for i in range(1,TOTAL_ROOMS)]
 
-    '9:00 AM',
-    '10:00 AM',
-    '11:00 AM',
-    '12:00 PM',
-    '2:00 PM',
-    '3:00 PM',
-    '4:00 PM'
-]
+sections = []
+for i in range(1, TOTAL_SECTIONS):
+    section = Section(f"Section {i}", courses)
+    sections.append(section)
 
-rooms = [(f"Room {i}") for i in range(1, 26)]
+
+instructors = [instructor(f"Instructor {i}") for i in range(1, TOTAL_INSTRUCTORS)]
+
+
+
