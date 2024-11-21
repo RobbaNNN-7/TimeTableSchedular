@@ -2,25 +2,9 @@ from collections import defaultdict
 from typing import List, Dict, Tuple
 
 
-class Student:
-    def __init__(self, student_id: str, department: str, section: str):
-        self.student_id = student_id
-        self.department = department
-        self.section = section
 
 
-class Classroom:
-    def __init__(self, name: str, num_columns: int, seats_per_column: int):
-        self.name = name
-        self.num_columns = num_columns
-        self.seats_per_column = seats_per_column
-        self.seating = [["" for _ in range(num_columns)] for _ in range(seats_per_column)]
 
-
-class Exam:
-    def __init__(self, department: str, subject: str):
-        self.department = department
-        self.subject = subject
 
 
 def arrange_seating(students: List[Student], classrooms: List[Classroom], exams: List[Exam]) -> Dict[str, List[List[str]]]:
