@@ -4,7 +4,6 @@ from classes.Student import *
 from classes.Classroom import *
 from classes.Exam import *
 
-
 class CSP:
     def __init__(self, students: List[Student], classrooms: List[Classroom], exams: List[Exam]):
         self.students = students
@@ -24,7 +23,7 @@ class CSP:
             for row in range(classroom.seats_per_column)
         ]
 
-        # Initialize domains (all students for all seats initially)
+        # Initialize domains (filtering students for classrooms and exams)
         self.domains = {var: self.students[:] for var in self.variables}
 
         # Initialize constraints
@@ -46,6 +45,12 @@ class CSP:
                         if var1 != var2:
                             self.constraints[var1].append(var2)  # Store related variables only
 
+            # Add no duplicate students across all seats
+            for var1 in self.variables:
+                for var2 in self.variables:
+                    if var1 != var2:
+                        self.constraints[var1].append(var2)
+
     def ac3(self):
         """
         Enforce arc-consistency using the AC-3 algorithm.
@@ -62,17 +67,6 @@ class CSP:
                         queue.append((var3, var1))
         return True
 
-
-    def is_consistent(self, var, value):
-        """
-        Check if assigning a value to a variable satisfies all constraints.
-        """
-        for constraint in self.constraints[var]:
-            for other_var, other_value in self.assignments.items():
-                if not constraint(value, other_value):
-                    return False
-        return True
-
     def revise(self, var1, var2):
         """
         Revise the domain of var1 to enforce arc-consistency.
@@ -80,13 +74,29 @@ class CSP:
         revised = False
         for value in self.domains[var1][:]:
             if not any(
-                self.is_consistent(var1, value)
+                self.is_consistent(var1, value, var2, value2)
                 for value2 in self.domains[var2]
                 if var2 in self.domains
             ):
                 self.domains[var1].remove(value)
                 revised = True
         return revised
+
+    def is_consistent(self, var1, value1, var2, value2):
+        """
+        Check if assigning a value to a variable satisfies all constraints.
+        """
+        # No duplicate students
+        if value1.student_id == value2.student_id:
+            return False
+
+        # No two students in the same column can have the same subject
+        if var1[1] == var2[1]:  # Same column
+            for exam in self.exams:
+                if exam.department == value1.department and exam.subject == value2.department:
+                    return False
+
+        return True
 
     def backtrack(self, assignment):
         """
@@ -97,7 +107,7 @@ class CSP:
 
         var = self.select_unassigned_variable(assignment)
         for value in self.domains[var]:
-            if self.is_consistent(var, value):
+            if all(self.is_consistent(var, value, other_var, assignment[other_var]) for other_var in assignment):
                 assignment[var] = value
                 result = self.backtrack(assignment)
                 if result:
