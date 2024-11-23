@@ -1,11 +1,7 @@
 class Section:
-    def __init__(self, section_name, course_list):
-        self.section_name = section_name
-        self.course_list = course_list
-        self.timetable = {}
-
-    def assign_course_to_slot(self, course, time_slot, room, instructor):
-        self.timetable[course.name] = (time_slot, room, instructor)
-
-    def get_timetable(self):
-        return self.timetable
+    def __init__(self, name, course):
+        self.name = name
+        self.course = course
+        
+    def __str__(self):
+        return f"{self.course.name} - {self.name}"

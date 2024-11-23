@@ -5,26 +5,53 @@ from classes.section import Section
 from global_variables import TOTAL_ROOMS, TOTAL_INSTRUCTORS, TOTAL_SECTIONS
 # Course definitions
 COURSES = [
-    Course('Math 101'),
-    Course('Physics 101'),
-    Course('Chemistry 101'),
-    Course('Biology 101'),
-    Course('CS 101'),
-    Course('History 101')
+    Course(name='Programming Fundamentals', credits=3),
+    Course(name='Digital Logic Design', credits=3),
+    Course(name='Discrete Structures', credits=3),
+    Course(name='Physics Lab', credits=1),
+    Course(name='Communication & Presentation Skills', credits=2)
 ]
 
-# Time slot definitions
+# Time slot definitions matching your format
 TIME_SLOTS = [
-    "9:00 AM",
-    "10:00 AM",
-    "11:00 AM", 
-    "12:00 PM", 
-    "2:00 PM", 
-    "3:00 PM",
-    "4:00 PM"
+    '0900-0950',
+    '1000-1050',
+    '1100-1150',
+    '1200-1250',
+    '1400-1450',
+    '1500-1550',
+    '1600-1650'
 ]
 
-# Generate rooms, instructors, and sections
-ROOMS = [Room(f"Room {i}") for i in range(1, TOTAL_ROOMS)]
-INSTRUCTORS = [Instructor(f"Instructor {i}") for i in range(1, TOTAL_INSTRUCTORS)]
-SECTIONS = [Section(f"Section {i}", COURSES) for i in range(1, TOTAL_SECTIONS)]
+# Generate rooms with meaningful names
+ROOMS = [
+    Room("CS-1"),
+    Room("CS-2"),
+    Room("CS-3"),
+    Room("LAB-1"),
+    Room("LAB-2")
+]
+
+# Generate instructors
+INSTRUCTORS = [
+    Instructor("INS-1"),
+    Instructor("INS-2"),
+    Instructor("INS-3"),
+    Instructor("INS-4"),
+    Instructor("INS-5")
+]
+
+# Modified Section creation
+def create_sections():
+    section_numbers = ['13', '14', '15', '16', '17']
+    sections = []
+    
+    for section_num in section_numbers:
+        for course in COURSES:
+            # Create a unique section name that includes both section number and course
+            section_name = f"Section {section_num}"
+            sections.append(Section(section_name, course))
+    
+    return sections
+
+SECTIONS = create_sections()
