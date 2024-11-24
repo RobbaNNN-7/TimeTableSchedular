@@ -1,14 +1,12 @@
 from collections import defaultdict, deque
-from typing import List, Dict, Tuple, Optional
+from typing import List
 from classes.Student import *
 from classes.Classroom import *
-from classes.Exam import *
 
 class CSP:
-    def __init__(self, students: List[Student], classrooms: List[Classroom], exams: List[Exam]):
+    def __init__(self, students: List[Student], classrooms: List[Classroom]):
         self.students = students
         self.classrooms = classrooms
-        self.exams = exams
         self.variables = []  # List of all seats (variables)
         self.domains = {}  # Maps each variable to a list of possible students (domain)
         self.constraints = defaultdict(list)  # Maps a variable to its constraints
@@ -17,10 +15,7 @@ class CSP:
     def initialize(self):
         # Create variables for all seats in all classrooms
         self.variables = [
-            (classroom.name, col, row)
-            for classroom in self.classrooms
-            for col in range(classroom.num_columns)
-            for row in range(classroom.seats_per_column)
+            (classroom.name, col, row) for classroom in self.classrooms for col in range(classroom.num_columns) for row in range(classroom.seats_per_column)
         ]
 
         # Initialize domains (filtering students for classrooms and exams)
@@ -40,16 +35,21 @@ class CSP:
                     (classroom.name, col, row) for row in range(classroom.seats_per_column)
                 ]
                 # No two students in the same column can have the same subject
-                for var1 in column_vars:
-                    for var2 in column_vars:
-                        if var1 != var2:
-                            self.constraints[var1].append(var2)  # Store related variables only
+        for i in range(len(column_vars)):
+            for j in range(i + 1, len(column_vars)):
+                var1 = column_vars[i]
+                var2 = column_vars[j]
+                self.constraints[var1].append(var2)  # Store related variables only
+                self.constraints[var2].append(var1)  # Ensure the constraint is bidirectional
+        # Add constraints for adjacent columns
+        if col > 0:
+            prev_column_vars = [(classroom.name, col-1, row) for row in range(classroom.seats_per_column)]
+            for var1 in column_vars:
+                for var2 in prev_column_vars:
+                    self.constraints[var1].append(var2)
+                    self.constraints[var2].append(var1)
 
-            # Add no duplicate students across all seats
-            for var1 in self.variables:
-                for var2 in self.variables:
-                    if var1 != var2:
-                        self.constraints[var1].append(var2)
+           
 
     def ac3(self):
         """
@@ -76,25 +76,30 @@ class CSP:
             if not any(
                 self.is_consistent(var1, value, var2, value2)
                 for value2 in self.domains[var2]
-                if var2 in self.domains
             ):
                 self.domains[var1].remove(value)
                 revised = True
         return revised
-
+    
     def is_consistent(self, var1, value1, var2, value2):
-        """
-        Check if assigning a value to a variable satisfies all constraints.
-        """
+        # No two students in the same column can have the same subject
+        if var1[0] == var2[0]:  # Same classroom
+            if var1[1] == var2[1]:  # Same column
+                if value1.subject == value2.subject:
+                    return False
+            # Check adjacent columns
+            elif abs(var1[1] - var2[1]) == 1:  # Adjacent columns
+                if value1.subject == value2.subject:
+                    return False
+                
         # No duplicate students
         if value1.student_id == value2.student_id:
             return False
 
         # No two students in the same column can have the same subject
-        if var1[1] == var2[1]:  # Same column
-            for exam in self.exams:
-                if exam.department == value1.department and exam.subject == value2.department:
-                    return False
+        if var1[0] == var2[0] and var1[1] == var2[1]:  # Same classroom and same column
+            if value1.subject == value2.subject:
+                return False
 
         return True
 
@@ -112,7 +117,7 @@ class CSP:
                 result = self.backtrack(assignment)
                 if result:
                     return result
-                del assignment[var]
+                assignment.pop(var, None)
         return None
 
     def select_unassigned_variable(self, assignment):
