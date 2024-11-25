@@ -147,8 +147,66 @@ class GeneticAlgorithm:
         
         return selected
     
+    @staticmethod
+    def one_point_crossover(parent1, parent2):
+        """
+        Perform one-point crossover between two parent chromosomes by swapping students 
+        between classrooms, ensuring no student repetition.
+        
+        Args:
+            parent1 (list): The first parent chromosome (list of Classroom objects).
+            parent2 (list): The second parent chromosome (list of Classroom objects).
+        
+        Returns:
+            tuple: Two offspring chromosomes.
+        """
+        assert len(parent1) == len(parent2), "Chromosomes must be of the same length"
+
+        # Swap the students in the chosen classroom and column between parent1 and parent2
+        offspring1 = [classroom for classroom in parent1]  # Copy of parent1
+        offspring2 = [classroom for classroom in parent2]  # Copy of parent2
+        
+        # Check and fix for student repetition after crossover
+        def fix_repetition(offspring):
+            seen_students = set()
+            for classroom in offspring:
+                for column in classroom.seating:
+                    for idx, student in enumerate(column):
+                        if student != "" and student.student_id in seen_students:
+                            # Reassign student to another available spot in the same classroom
+                            for other_column in classroom.seating:
+                                if "" in other_column:
+                                    # Find the first empty seat and reassign the student
+                                    other_column[other_column.index("")] = student
+                                    column[idx] = ""  # Remove student from previous seat
+                                    seen_students.add(student.student_id)
+                                    break
+                        elif student != "":
+                            seen_students.add(student.student_id)
+            return offspring
+        
+        
+        # Choose a random crossover point (classroom and column)
+        crossover_classroom_index = random.randint(0, len(parent1) - 1)
+        crossover_column_index = random.randint(0, parent1[crossover_classroom_index].num_columns - 1)
+        
+        
+        # Swap students in the selected crossover classroom and column
+        temp = offspring1[crossover_classroom_index].seating[crossover_column_index]
+        offspring1[crossover_classroom_index].seating[crossover_column_index] = parent2[crossover_classroom_index].seating[crossover_column_index]
+        offspring2[crossover_classroom_index].seating[crossover_column_index] = temp
+
+        # Fix repetition issues in both offspring
+        offspring1 = fix_repetition(offspring1)
+        offspring2 = fix_repetition(offspring2)
     
     
+
+    
+        return offspring1, offspring2
+
+
+
 
 
 
@@ -178,7 +236,18 @@ def main():
     # Print the generated population
     selected=(ga.roulette_wheel_selection([ga.calculate_fitness(chromosome) for chromosome in ga.population], 5))
 
-    for chromosome in selected:
+    for chromosome in selected[0:2]:
+        print(ga.calculate_fitness(chromosome))
+        for classroom in chromosome:
+            print(f"Classroom: {classroom.name}")
+            for col, column in enumerate(classroom.seating):
+                for row, student in enumerate(column):
+                    print(f"Seat: ({col}, {row}), Student: {student}")
+
+    # Perform one-point crossover between two selected chromosomes
+    offspring1, offspring2 = ga.one_point_crossover(selected[0], selected[1])
+    arr=[offspring1,offspring2]
+    for chromosome in arr:
         print(ga.calculate_fitness(chromosome))
         for classroom in chromosome:
             print(f"Classroom: {classroom.name}")
