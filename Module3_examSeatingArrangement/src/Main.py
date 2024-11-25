@@ -1,8 +1,6 @@
-from collections import defaultdict, deque
-from typing import List, Dict, Tuple, Optional
 from classes.Student import *
 from classes.Classroom import *
-from Csp import *
+from Module3_examSeatingArrangement.src.GA import *
 
 
 # Example usage of CSP for exam seating arrangement
@@ -25,10 +23,10 @@ students = [
 
 # Create some classrooms
 classrooms = [
-    Classroom("Room1", 2, 3),  # 2 columns, 3 seats per column
+    Classroom("Room1", 4, 3),  # 2 columns, 3 seats per column
     Classroom("Room2", 2, 3),
+    Classroom("Room1", 4, 3),  # 4 columns, 3 seats per column
 ]
-
 # Initialize CSP
 csp = CSP(students, classrooms)
 
