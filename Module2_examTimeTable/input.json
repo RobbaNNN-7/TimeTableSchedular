@@ -1,0 +1,75 @@
+{
+    "batchSections": [
+      {
+        "batch": "2023",
+        "department": "CS",
+        "sections": ["A", "B", "C"]
+      },
+      {
+        "batch": "2023",
+        "department": "EE",
+        "sections": ["D", "E"]
+      }
+    ],
+    "subjects": [
+      {
+        "name": "Data Structures",
+        "batch": "2023",
+        "department": "CS",
+        "sections": ["A", "B","C"],
+        "instructor": "Dr. Smith"
+      },
+      {
+        "name": "Data Structures",
+        "batch": "2023",
+        "department": "CS",
+        "sections": ["D","E"],
+        "instructor": "Dr. Chawla"
+      },
+      {
+        "name": "Digital Circuits",
+        "batch": "2023",
+        "department": "EE",
+        "sections": ["A", "B","C"],
+        "instructor": "Prof. Johnson"
+      },
+      {
+        "name": "Data Structures",
+        "batch": "2023",
+        "department": "EE",
+        "sections": ["A", "B","C"],
+        "instructor": "Prof. Lali"
+      },
+      {
+        "name": "Probability",
+        "batch": "2023",
+        "department": "CS",
+        "sections": ["A","B","C","D","E"],
+        "instructor": "Dr. Nigga"
+      },
+      {
+        "name": "IS",
+        "batch": "2023",
+        "department": "CS",
+        "sections": ["A","B","C","D","E"],
+        "instructor": "Dr. Gello"
+      },
+      {
+        "name": "Islamiat",
+        "batch": "2023",
+        "department": "CS",
+        "sections": ["A","B","C","D","E"],
+        "instructor": "Dr. Ammar"
+      },
+      {
+        "name": "Calculus",
+        "batch": "2023",
+        "department": "EE",
+        "sections": ["A", "B","C"],
+        "instructor": "Prof. JohnnyBoi"
+      }
+    ],
+    "startDate": "2024-12-01",
+    "endDate": "2024-12-10"
+  }
+  
