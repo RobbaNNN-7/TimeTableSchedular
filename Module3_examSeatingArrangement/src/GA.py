@@ -150,64 +150,111 @@ class GeneticAlgorithm:
     @staticmethod
     def one_point_crossover(parent1, parent2):
         """
-        Perform one-point crossover between two parent chromosomes by swapping students 
-        between classrooms, ensuring no student repetition.
-        
+        Perform one-point crossover at the student level.
+
         Args:
-            parent1 (list): The first parent chromosome (list of Classroom objects).
-            parent2 (list): The second parent chromosome (list of Classroom objects).
-        
+            parent1 (list[Classroom]): The first parent chromosome (list of Classroom objects).
+            parent2 (list[Classroom]): The second parent chromosome (list of Classroom objects).
+
         Returns:
-            tuple: Two offspring chromosomes.
+            tuple: Two offspring chromosomes (lists of Classroom objects).
         """
-        assert len(parent1) == len(parent2), "Chromosomes must be of the same length"
+        # Ensure both parents have the same number of classrooms
+        assert len(parent1) == len(parent2), "Parent chromosomes must have the same number of classrooms"
 
-        # Swap the students in the chosen classroom and column between parent1 and parent2
-        offspring1 = [classroom for classroom in parent1]  # Copy of parent1
-        offspring2 = [classroom for classroom in parent2]  # Copy of parent2
-        
-        # Check and fix for student repetition after crossover
-        def fix_repetition(offspring):
-            seen_students = set()
-            for classroom in offspring:
-                for column in classroom.seating:
-                    for idx, student in enumerate(column):
-                        if student != "" and student.student_id in seen_students:
-                            # Reassign student to another available spot in the same classroom
-                            for other_column in classroom.seating:
-                                if "" in other_column:
-                                    # Find the first empty seat and reassign the student
-                                    other_column[other_column.index("")] = student
-                                    column[idx] = ""  # Remove student from previous seat
-                                    seen_students.add(student.student_id)
+        # Choose random crossover points
+        crossover_point_class = random.randint(0, len(parent1) - 1)
+        crossover_point_column = random.randint(0, parent2[crossover_point_class].num_columns - 1)
+        crossover_point_student = random.randint(0, parent2[crossover_point_class].seats_per_column - 1)
+
+        # Create offspring1 based on parent2 up to crossover point
+        offspring1 = [Classroom(c.name, c.num_columns, c.seats_per_column) for c in parent2]
+
+        for i in range(crossover_point_class + 1):
+            if i < crossover_point_class:
+                # Copy all classrooms before the crossover class from parent2
+                offspring1[i] = parent2[i]
+            elif i == crossover_point_class:
+                # For the crossover class, copy columns up to the crossover column
+                for j in range(crossover_point_column + 1):
+                    if j < crossover_point_column:
+                        offspring1[i].seating[j]=parent2[i].seating[j]
+                    else:
+                        # For the crossover column, copy students up to the crossover student
+                        for k in range(crossover_point_student + 1):
+                            offspring1[i].assign_student(j,parent2[i].seating[j][k] )
+
+       
+        # Add remaining students from parent1 to offspring1
+        for i in range(len(parent1)):
+            # Assign unadded students column by column
+            for j in range(parent1[i].num_columns):
+                for student in parent1[i].seating[j]:
+                    # Check if the student is already in offspring1
+                    if not any(
+                        student.equals(other_student)
+                        for classroom in offspring1
+                        for col in classroom.seating
+                        for other_student in col
+                    ):
+                        # Find the first available column in the current classroom
+                        for class_no in range(len(offspring1)):
+                            found = False
+                            for col in range(offspring1[class_no].num_columns):
+                                if offspring1[class_no].is_seat_available(col):
+                                    offspring1[class_no].assign_student(col, student)
+                                    found = True
                                     break
-                        elif student != "":
-                            seen_students.add(student.student_id)
-            return offspring
-        
-        
-        # Choose a random crossover point (classroom and column)
-        crossover_classroom_index = random.randint(0, len(parent1) - 1)
-        crossover_column_index = random.randint(0, parent1[crossover_classroom_index].num_columns - 1)
-        
-        
-        # Swap students in the selected crossover classroom and column
-        temp = offspring1[crossover_classroom_index].seating[crossover_column_index]
-        offspring1[crossover_classroom_index].seating[crossover_column_index] = parent2[crossover_classroom_index].seating[crossover_column_index]
-        offspring2[crossover_classroom_index].seating[crossover_column_index] = temp
+                            if found:
+                                break
 
-        # Fix repetition issues in both offspring
-        offspring1 = fix_repetition(offspring1)
-        offspring2 = fix_repetition(offspring2)
-    
-    
+        
 
+        # Create offspring2 based on parent1 up to crossover point
+        offspring2 = [Classroom(c.name, c.num_columns, c.seats_per_column) for c in parent1]
+
+        for i in range(crossover_point_class + 1):
+            if i < crossover_point_class:
+                # Copy all classrooms before the crossover class from parent1
+                offspring2[i] = parent1[i]
+            elif i == crossover_point_class:
+            # For the crossover class, copy columns up to the crossover column
+                for j in range(crossover_point_column + 1):
+                    if j < crossover_point_column:
+                        offspring2[i].seating[j] = parent1[i].seating[j]
+                    else:
+                        # For the crossover column, copy students up to the crossover student
+                        for k in range(crossover_point_student + 1):
+                            offspring2[i].assign_student(j, parent1[i].seating[j][k])
+
+        # Add remaining students from parent2 to offspring2
+        for i in range(len(parent2)):
+            # Assign unadded students column by column
+            for j in range(parent2[i].num_columns):
+                for student in parent2[i].seating[j]:
+                    # Check if the student is already in offspring2
+                    if not any(
+                    student.equals(other_student)
+                    for classroom in offspring2
+                    for col in classroom.seating
+                    for other_student in col
+                    ):
+                        # Find the first available column in the current classroom
+                        for class_no in range(len(offspring2)):
+                            found = False
+                            for col in range(offspring2[class_no].num_columns):
+                                if offspring2[class_no].is_seat_available(col):
+                                    offspring2[class_no].assign_student(col, student)
+                                    found = True
+                                    break
+                            if found:
+                                break
     
         return offspring1, offspring2
 
-
-
-
+                    
+        
+        
 
 
 
@@ -218,13 +265,19 @@ def main():
         Student("S2", "CS", "A", "Math"),
         Student("S3", "CS", "B", "Physics"),
         Student("S4", "EE", "A", "Math"),
-        Student("S5", "EE", "B", "Physics")
+        Student("S5", "EE", "B", "Physics"),
+        Student("S6", "EE", "B", "Physics"),
+        Student("S7", "DS", "C", "Chemistry"),
+        Student("S8", "DS", "C", "Chemistry"),
+        Student("S9", "DS", "C", "Chemistry"),
+        Student("S10", "CS", "A", "Math"),
     ]
     
     # Create some sample classrooms
     classrooms = [
         Classroom("Room1", 2, 2),
-        Classroom("Room2", 2, 2)
+        Classroom("Room2", 2, 2),
+        Classroom("Room3", 2, 2),
     ]
     
     # Initialize the genetic algorithm with students and classrooms
