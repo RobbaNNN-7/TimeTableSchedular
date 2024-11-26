@@ -1,6 +1,5 @@
 from classes.Student import *
 from classes.Classroom import *
-from Module3_examSeatingArrangement.src.GA import *
 
 
 # Example usage of CSP for exam seating arrangement
