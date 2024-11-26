@@ -1,2 +1,2 @@
 
-# Run the timetable generation
+            if success:
