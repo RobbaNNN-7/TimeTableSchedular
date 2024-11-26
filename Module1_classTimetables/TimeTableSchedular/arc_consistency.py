@@ -55,8 +55,68 @@ class TimeTableCSP:
                     'room': 'Break',
                     'type': 'break'
                 }
+    
+    def is_consective_slots(self,section:str,day:int,hour:int,course:str)->bool:
 
-    def is_slot_free(self, section: str, day: int, hour: int, duration: int = 1,room : str = None) -> bool:
+        """ FUNCTION TO NOT ALLOW THREE CONSECTIVE SLOTS """
+        for start in range(hour-2,hour-1,hour):
+            if start >= 0 and start <= self.hours_per_day:
+
+                # Checking if Break Time Comes in Between
+                if start + 1 ==  self.break_hour:
+                    return self.helper_consective(section,day,hour-1,course)
+
+                return self.helper_consective(section,day,hour,course)  
+        return True
+    
+    """ Helper Function for is_consective_slots Function"""
+    def helper_consective(self,section,day,hour,course):
+        slot_1 = self.timetable[section][day][hour-2]
+        slot_2 = self.timetable[section][day][hour-1]
+        slot_3 = self.timetable[section][day][hour]
+
+        if (
+            slot_1
+            and slot_2
+            and slot_3
+            and slot_1['course'] == course
+            and slot_2['course'] == course
+            and slot_3['course'] == course):
+
+            return False
+        
+    """
+        I have to write a function that does not allow, a gap in course slots
+
+        Eg : 
+            if DSA is in slot four then either terminate DSA for the day of make it consective 
+            dont make gaps in between
+
+    """
+
+    def is_gap(self, section: str, day: int, course: str) -> bool:
+        """
+        Check if there are interruptions (other courses or empty slots) between
+        occurrences of a specific course on a given day for a section.
+        """
+        found_first = False  # Track if the first occurrence of the course is found
+
+        for hour in range(self.hours_per_day):
+            slot = self.timetable[section][day][hour]
+
+            if slot and slot['course'] == course:  # If this slot is the course we're checking
+                if not found_first:
+                    found_first = True  # Mark the first occurrence
+                else:
+                    continue  # This is a subsequent occurrence; no gap detected yet
+            elif found_first:  # If the first occurrence was found and this slot is not the course
+                # If we encounter another course or an empty slot after the first occurrence
+                if not (slot and slot['course'] == "Break"):  # Exclude break slots
+                    return True
+
+        return False
+ 
+    def is_slot_free(self, section: str, day: int, hour: int,course:str = None,duration: int = 1,room : str = None) -> bool:
         """Check if a time slot is free for the given duration"""
         if hour + duration > self.hours_per_day:
             return False
@@ -75,13 +135,24 @@ class TimeTableCSP:
             if not all(not self.room_schedule[room][day][h]
             for h in range(hour,hour+duration)):
                 return False
+        
+        # Checking Three Consective Slots
+        if course:
+            course_name = f"{course} Lab" if duration > 1 else course
+            if not self.is_consective_slots(section,day,hour,course):
+                return False
+        
+        # Cheking For Gaps
+        if course:
+            if self.is_gap(section,day,course):
+                return False
 
         """ Availible """
         return True
 
 
 
-    def find_free_slot_and_room(self, section: str, duration: int = 1, is_lab: bool = False) -> Tuple[int, int, str]:
+    def find_free_slot_and_room(self, section: str, duration: int = 1, is_lab: bool = False,course:str = None) -> Tuple[int, int, str]:
         """Find a free slot and room with intelligent backtracking"""
         # Randomize search order to increase solution probability
         days = list(range(len(self.days)))
@@ -95,7 +166,7 @@ class TimeTableCSP:
         for day in days:
             for hour in hours:
                 for room in rooms:
-                    if self.is_slot_free(section, day, hour, duration, room):
+                    if self.is_slot_free(section, day, hour,course, duration, room):
                         return day, hour, room
         
         return None
@@ -143,9 +214,7 @@ class TimeTableCSP:
                 if not theory_scheduled:
                     return False
         
-        return True
-
-        
+        return True 
 
     def solve(self):
         max_attempts = 10000
