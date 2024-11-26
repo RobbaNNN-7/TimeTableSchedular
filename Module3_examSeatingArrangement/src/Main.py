@@ -1,49 +1,41 @@
-from collections import defaultdict, deque
-from typing import List, Dict, Tuple, Optional
 from classes.Student import *
 from classes.Classroom import *
-from classes.Exam import *
-from Csp import *
+from Module3_examSeatingArrangement.src.GA import *
 
 
+# Example usage of CSP for exam seating arrangement
 
-# Example Usage
+# Create some students
 students = [
-    Student("S1", "CS", "A"),
-    Student("S2", "CS", "A"),
-    Student("S3", "CS", "B"),
-    Student("S4", "ECE", "A"),
-    Student("S5", "ECE", "B"),
-    Student("S6", "ECE", "B"),
-    Student("S7", "ECE", "A"),
-    Student("S8", "CS", "A"),
-    Student("S9", "CS", "B"),
-    Student("S10", "CS", "B"),
-    Student("S11", "ECE", "A"),
-    Student("S12", "ECE", "B"),
-    Student("S13", "ECE", "A"),
-    Student("S14", "CS", "A"),
-    Student("S15", "CS", "A"),
-    Student("S16", "CS", "B"),
-    Student("S17", "ECE", "A"),
-    Student("S18", "ECE", "B"),
+    Student("S1", "CS", "A", "Math"),
+    Student("S2", "EE", "B", "Physics"),
+    Student("S3", "DS", "C", "Chemistry"),
+    Student("S4", "CS", "A", "Math"),
+    Student("S5", "EE", "B", "Physics"),
+    Student("S6", "DS", "C", "Chemistry"),
+    Student("S7", "CS", "A", "Math"),
+    Student("S8", "EE", "B", "Physics"),
+    Student("S9", "DS", "C", "Chemistry"),
+    Student("S10", "CS", "A", "Math"),
+    Student("S11", "EE", "B", "Physics"),
+    Student("S12", "DS", "C", "Chemistry")
 ]
 
+# Create some classrooms
 classrooms = [
-    Classroom("Room1", 2, 3),
-    Classroom("Room2", 3, 4),
+    Classroom("Room1", 4, 3),  # 2 columns, 3 seats per column
+    Classroom("Room2", 2, 3),
+    Classroom("Room1", 4, 3),  # 4 columns, 3 seats per column
 ]
+# Initialize CSP
+csp = CSP(students, classrooms)
 
-exams = [
-    Exam("CS", "Math"),
-    Exam("ECE", "Physics"),
-]
-
-csp = CSP(students, classrooms, exams)
+# Solve the CSP problem
 solution = csp.solve()
 
+# Print the solution
 if solution:
-    for var, student in solution.items():
-        print(f"Seat {var} -> {student.student_id if student else 'Empty'}")
+    for (classroom, col, row), student in solution.items():
+        print(f"Classroom: {classroom}, Seat: ({col}, {row}), Student: {student.student_id}, Subject: {student.subject}")
 else:
-    print("No solution found.")
+    print("No solution found")
