@@ -92,6 +92,9 @@ class GeneticAlgorithm:
                     else:
                         seen_students.add(student.student_id)
         
+        
+
+        
         # Reward balanced classroom utilization
         total_students = sum(len(column) for classroom in chromosome for column in classroom.seating)
         average_students_per_classroom = total_students / len(chromosome)
@@ -147,8 +150,7 @@ class GeneticAlgorithm:
         
         return selected
     
-    @staticmethod
-    def one_point_crossover(parent1, parent2):
+    def one_point_crossover(self, parent1, parent2):
         """
         Perform one-point crossover at the student level.
 
@@ -159,102 +161,171 @@ class GeneticAlgorithm:
         Returns:
             tuple: Two offspring chromosomes (lists of Classroom objects).
         """
-        # Ensure both parents have the same number of classrooms
         assert len(parent1) == len(parent2), "Parent chromosomes must have the same number of classrooms"
 
-        # Choose random crossover points
+        # Random crossover points
         crossover_point_class = random.randint(0, len(parent1) - 1)
         crossover_point_column = random.randint(0, parent2[crossover_point_class].num_columns - 1)
         crossover_point_student = random.randint(0, parent2[crossover_point_class].seats_per_column - 1)
 
-        # Create offspring1 based on parent2 up to crossover point
-        offspring1 = [Classroom(c.name, c.num_columns, c.seats_per_column) for c in parent2]
+        # Helper function to copy classrooms up to the crossover point
+        def copy_up_to_crossover(parent, crossover_class, crossover_col, crossover_student):
+            offspring = [Classroom(c.name, c.num_columns, c.seats_per_column) for c in parent]
+            for i in range(crossover_class + 1):
+                if i < crossover_class:
+                    offspring[i].seating = [list(col) for col in parent[i].seating]
+                elif i == crossover_class:
+                    for j in range(crossover_col + 1):
+                        if j < crossover_col:
+                            offspring[i].seating[j] = list(parent[i].seating[j])
+                        else:
+                            offspring[i].seating[j] = parent[i].seating[j][:crossover_student + 1]
+            return offspring
 
-        for i in range(crossover_point_class + 1):
-            if i < crossover_point_class:
-                # Copy all classrooms before the crossover class from parent2
-                offspring1[i] = parent2[i]
-            elif i == crossover_point_class:
-                # For the crossover class, copy columns up to the crossover column
-                for j in range(crossover_point_column + 1):
-                    if j < crossover_point_column:
-                        offspring1[i].seating[j]=parent2[i].seating[j]
-                    else:
-                        # For the crossover column, copy students up to the crossover student
-                        for k in range(crossover_point_student + 1):
-                            offspring1[i].assign_student(j,parent2[i].seating[j][k] )
-
-       
-        # Add remaining students from parent1 to offspring1
-        for i in range(len(parent1)):
-            # Assign unadded students column by column
-            for j in range(parent1[i].num_columns):
-                for student in parent1[i].seating[j]:
-                    # Check if the student is already in offspring1
-                    if not any(
-                        student.equals(other_student)
-                        for classroom in offspring1
-                        for col in classroom.seating
-                        for other_student in col
-                    ):
-                        # Find the first available column in the current classroom
-                        for class_no in range(len(offspring1)):
-                            found = False
-                            for col in range(offspring1[class_no].num_columns):
-                                if offspring1[class_no].is_seat_available(col):
-                                    offspring1[class_no].assign_student(col, student)
-                                    found = True
+        # Helper function to assign remaining students
+        def assign_remaining_students(source_parent, offspring):
+            for classroom in source_parent:
+                for col in classroom.seating:
+                    for student in col:
+                        if not any(
+                            student.student_id == other_student.student_id
+                            for c in offspring
+                            for col in c.seating
+                            for other_student in col
+                        ):
+                            assigned = False
+                            for target_classroom in offspring:
+                                for col_no in range(target_classroom.num_columns):
+                                    if target_classroom.is_seat_available(col_no):
+                                        target_classroom.assign_student(col_no, student)
+                                        assigned = True
+                                        break
+                                if assigned:
                                     break
-                            if found:
-                                break
 
-        
+        # Create offspring1 and offspring2
+        offspring1 = copy_up_to_crossover(parent2, crossover_point_class, crossover_point_column, crossover_point_student)
+        assign_remaining_students(parent1, offspring1)
 
-        # Create offspring2 based on parent1 up to crossover point
-        offspring2 = [Classroom(c.name, c.num_columns, c.seats_per_column) for c in parent1]
+        offspring2 = copy_up_to_crossover(parent1, crossover_point_class, crossover_point_column, crossover_point_student)
+        assign_remaining_students(parent2, offspring2)
 
-        for i in range(crossover_point_class + 1):
-            if i < crossover_point_class:
-                # Copy all classrooms before the crossover class from parent1
-                offspring2[i] = parent1[i]
-            elif i == crossover_point_class:
-            # For the crossover class, copy columns up to the crossover column
-                for j in range(crossover_point_column + 1):
-                    if j < crossover_point_column:
-                        offspring2[i].seating[j] = parent1[i].seating[j]
-                    else:
-                        # For the crossover column, copy students up to the crossover student
-                        for k in range(crossover_point_student + 1):
-                            offspring2[i].assign_student(j, parent1[i].seating[j][k])
-
-        # Add remaining students from parent2 to offspring2
-        for i in range(len(parent2)):
-            # Assign unadded students column by column
-            for j in range(parent2[i].num_columns):
-                for student in parent2[i].seating[j]:
-                    # Check if the student is already in offspring2
-                    if not any(
-                    student.equals(other_student)
-                    for classroom in offspring2
-                    for col in classroom.seating
-                    for other_student in col
-                    ):
-                        # Find the first available column in the current classroom
-                        for class_no in range(len(offspring2)):
-                            found = False
-                            for col in range(offspring2[class_no].num_columns):
-                                if offspring2[class_no].is_seat_available(col):
-                                    offspring2[class_no].assign_student(col, student)
-                                    found = True
-                                    break
-                            if found:
-                                break
-    
         return offspring1, offspring2
 
-                    
-        
-        
+
+    def multiple_swaps_mutation(self,chromosome):
+        """
+        Perform mutation by swapping two randomly selected students within the arrangement.
+
+        Args:
+            chromosome (list[Classroom]): A single chromosome (list of Classroom objects).
+
+        Returns:
+            list[Classroom]: The mutated chromosome.
+        """
+        # Flatten all students with their locations for easier random selection
+        student_positions = []
+        for class_idx, classroom in enumerate(chromosome):
+            for col_idx, column in enumerate(classroom.seating):
+                for row_idx, student in enumerate(column):
+                    if student:  # Ensure only valid students are considered
+                        student_positions.append((class_idx, col_idx, row_idx, student))
+        '''
+        # Debug: Log all students before mutation
+        print("\nBefore Mutation:")
+        for class_idx, classroom in enumerate(chromosome):
+            for col_idx, column in enumerate(classroom.seating):
+                for row_idx, student in enumerate(column):
+                    print(f"Classroom {class_idx}, Seat ({col_idx},{row_idx}): {student}")
+        '''
+        # Ensure there are at least two students to swap
+        if len(student_positions) < 2:
+            return chromosome  # No mutation possible
+
+        # Perform multiple swaps (can be set to a specific number of swaps)
+        num_swaps = len(chromosome)
+        for _ in range(1):
+            # Randomly select two different students
+            pos1, pos2 = random.sample(student_positions, 2)
+
+            
+            # Unpack positions
+            class1, col1, row1, student1 = pos1
+            class2, col2, row2, student2 = pos2
+            '''
+            # Debug: Log positions selected for swapping
+            print(f"\nSwapping:\n  Student1 at ({class1},{col1},{row1}): {student1}\n  Student2 at ({class2},{col2},{row2}): {student2}")
+            '''
+
+            # Swap students in their respective positions
+            chromosome[class1].seating[col1][row1], chromosome[class2].seating[col2][row2] = (
+                student2,
+                student1,
+            )
+        '''      
+        # Debug: Log all students after mutation
+        print("\nAfter Mutation:")
+        for class_idx, classroom in enumerate(chromosome):
+            for col_idx, column in enumerate(classroom.seating):
+                for row_idx, student in enumerate(column):
+                    print(f"Classroom {class_idx}, Seat ({col_idx},{row_idx}): {student}")
+        '''
+
+        return chromosome
+
+
+    
+    def evolve(self, generations=100, elite_count=10, mutation_rate=0.2):
+        """
+        Perform the genetic algorithm's iterative evolution.
+
+        Args:
+            generations (int): Number of generations to evolve.
+            elite_count (int): Number of top chromosomes to carry forward to the next generation.
+            mutation_rate (float): Probability of applying mutation to offspring.
+
+        Returns:
+            list[Classroom]: The best chromosome found after evolution.
+        """
+        # Generate initial population
+        self.generate_initial_population()
+
+        for generation in range(generations):
+            print(f"Generation {generation + 1}")
+
+            # Calculate fitness for the population
+            fitness_scores = [self.calculate_fitness(chromosome) for chromosome in self.population]
+
+            # Select the best chromosomes for elitism
+            elite_indices = sorted(range(len(fitness_scores)), key=lambda i: fitness_scores[i], reverse=True)[:elite_count]
+            elite_chromosomes = [self.population[i] for i in elite_indices]
+
+            # Perform roulette wheel selection
+            selected_parents = self.roulette_wheel_selection(fitness_scores, num_selected=len(self.population) - elite_count)
+
+            # Generate offspring via crossover
+            offspring = []
+            for i in range(0, len(selected_parents) - 1, 2):
+                parent1 = selected_parents[i]
+                parent2 = selected_parents[i + 1]
+                child1, child2 = self.one_point_crossover(parent1, parent2)
+                offspring.extend([child1, child2])
+
+            # Apply mutation
+            for i in range(len(offspring)):
+                if random.random() < mutation_rate:
+                    offspring[i] = self.multiple_swaps_mutation(offspring[i])
+
+            # Combine elite chromosomes and offspring
+            self.population = elite_chromosomes + offspring[: len(self.population) - elite_count]
+
+        # Return the best chromosome after the final generation
+        fitness_scores = [self.calculate_fitness(chromosome) for chromosome in self.population]
+        best_index = fitness_scores.index(max(fitness_scores))
+        return self.population[best_index]
+
+
+
 
 
 
@@ -263,45 +334,44 @@ def main():
     students = [
         Student("S1", "CS", "A", "Math"),
         Student("S2", "CS", "A", "Math"),
-        Student("S3", "CS", "B", "Physics"),
-        Student("S4", "EE", "A", "Math"),
+        Student("S3", "CS", "B", "Math"),
+        Student("S4", "EE", "A", "Physics"),
         Student("S5", "EE", "B", "Physics"),
         Student("S6", "EE", "B", "Physics"),
-        Student("S7", "DS", "C", "Chemistry"),
-        Student("S8", "DS", "C", "Chemistry"),
-        Student("S9", "DS", "C", "Chemistry"),
-        Student("S10", "CS", "A", "Math"),
+        Student("S7", "DS", "C", "Math"),
+        Student("S8", "DS", "C", "Math"),
+        Student("S9", "DS", "C", "Math"),
+        Student("S10", "EE", "A", "Physics"),
+        Student("S11", "EE", "A", "Physics"),
+        Student("S12", "EE", "C", "Physics"),
+        Student("S13", "CS", "A", "Math"),
+        Student("S14", "CS", "B", "Math"),
+        Student("S15", "CS", "B", "Math"),
+        Student("S16", "EE", "A", "Physics"),
+        Student("S17", "EE", "A", "Physics"),
+        Student("S18", "EE", "A", "Physics"),
+        Student("S19", "DS", "C", "Math"),
+        Student("S20", "DS", "C", "Math"),
+        Student("S21", "DS", "C", "Math"),
+        Student("S22", "EE", "B", "Physics"),
+        Student("S23", "EE", "B", "Physics"),
+        Student("S24", "EE", "B", "Physics")
     ]
     
     # Create some sample classrooms
     classrooms = [
-        Classroom("Room1", 2, 2),
-        Classroom("Room2", 2, 2),
-        Classroom("Room3", 2, 2),
+        Classroom("Room1", 4, 3),
+        Classroom("Room2", 4, 3)
     ]
     
     # Initialize the genetic algorithm with students and classrooms
     ga = GeneticAlgorithm(students, classrooms)
     
     # Generate the initial population
-    ga.generate_initial_population()
+    chromosome = ga.evolve(generations=10000)
     
-    # Print the generated population
-    selected=(ga.roulette_wheel_selection([ga.calculate_fitness(chromosome) for chromosome in ga.population], 5))
-
-    for chromosome in selected[0:2]:
-        print(ga.calculate_fitness(chromosome))
-        for classroom in chromosome:
-            print(f"Classroom: {classroom.name}")
-            for col, column in enumerate(classroom.seating):
-                for row, student in enumerate(column):
-                    print(f"Seat: ({col}, {row}), Student: {student}")
-
-    # Perform one-point crossover between two selected chromosomes
-    offspring1, offspring2 = ga.one_point_crossover(selected[0], selected[1])
-    arr=[offspring1,offspring2]
+    arr = [chromosome]
     for chromosome in arr:
-        print(ga.calculate_fitness(chromosome))
         for classroom in chromosome:
             print(f"Classroom: {classroom.name}")
             for col, column in enumerate(classroom.seating):
