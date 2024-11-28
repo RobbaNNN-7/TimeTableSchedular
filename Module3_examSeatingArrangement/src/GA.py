@@ -290,6 +290,8 @@ class GeneticAlgorithm:
         # Generate initial population
         self.generate_initial_population()
 
+        prev_fitness_scores = [self.calculate_fitness(chromosome) for chromosome in self.population]
+
         for generation in range(generations):
             print(f"Generation {generation + 1}")
 
@@ -319,11 +321,23 @@ class GeneticAlgorithm:
             # Combine elite chromosomes and offspring
             self.population = elite_chromosomes + offspring[: len(self.population) - elite_count]
 
-        # Return the best chromosome after the final generation
-        fitness_scores = [self.calculate_fitness(chromosome) for chromosome in self.population]
-        best_index = fitness_scores.index(max(fitness_scores))
-        return self.population[best_index]
+            # Return the best chromosome after the final generation
+            fitness_scores = [self.calculate_fitness(chromosome) for chromosome in self.population]
+            best_index = fitness_scores.index(max(fitness_scores))
+            # Check for convergence
+            if generation > 0 and max(fitness_scores) == max(prev_fitness_scores):
+                convergence_count += 1
+            else:
+                convergence_count = 0
 
+            if convergence_count >= 50:  # Stop if no improvement for 50 generations
+                print(f"Converged after {generation + 1} generations.")
+                break
+
+            prev_fitness_scores = fitness_scores
+
+        return self.population[best_index]
+        
 
 
 
@@ -355,7 +369,7 @@ def main():
         Student("S21", "DS", "C", "Math"),
         Student("S22", "EE", "B", "Physics"),
         Student("S23", "EE", "B", "Physics"),
-        Student("S24", "EE", "B", "Physics")
+        
     ]
     
     # Create some sample classrooms
