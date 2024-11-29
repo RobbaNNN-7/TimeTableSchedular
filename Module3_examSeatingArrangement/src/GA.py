@@ -1,7 +1,7 @@
 from collections import defaultdict, deque
 from typing import List
-from ..classes.Classroom import *
-from ..classes.Student import *
+from src.classes.Student import *
+from src.classes.Classroom import *
 import random
 
 class GeneticAlgorithm:
