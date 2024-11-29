@@ -13,7 +13,7 @@ def seating_arrangement_route():
     data = request.args.get('data')
     ga = GeneticAlgorithm(data['students'],data['classrooms'])
     response = ga.evolve()
-    return response.to_json()
+    return jsonify(response)
 
 if __name__ == '__main__':
     app.run(debug=True)
