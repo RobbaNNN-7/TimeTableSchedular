@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seating Arrangement</title>
+    <script>
+        function generateForms() {
+            // Get the number of classrooms and students
+            const numClassrooms = document.getElementById("numClassrooms").value;
+            const numStudents = document.getElementById("numStudents").value;
+
+            // Clear existing forms
+            const classroomFormContainer = document.getElementById("classroomForms");
+            const studentFormContainer = document.getElementById("studentForms");
+            classroomFormContainer.innerHTML = "";
+            studentFormContainer.innerHTML = "";
+
+            // Create classroom forms
+            for (let i = 0; i < numClassrooms; i++) {
+                const classroomForm = document.createElement("div");
+                classroomForm.innerHTML = `
+                    <h3>Classroom ${i + 1}</h3>
+                    <label for="classroomName${i}">Name:</label>
+                    <input type="text" id="classroomName${i}" name="classrooms[${i}][name]" required>
+                    <label for="numColumns${i}">Number of Columns:</label>
+                    <input type="number" id="numColumns${i}" name="classrooms[${i}][num_columns]" required>
+                    <label for="seatsPerColumn${i}">Seats per Column:</label>
+                    <input type="number" id="seatsPerColumn${i}" name="classrooms[${i}][seats_per_column]" required>
+                `;
+                classroomFormContainer.appendChild(classroomForm);
+            }
+
+            // Create student forms
+            for (let i = 0; i < numStudents; i++) {
+                const studentForm = document.createElement("div");
+                studentForm.innerHTML = `
+                    <h3>Student ${i + 1}</h3>
+                    <label for="studentID${i}">ID:</label>
+                    <input type="text" id="studentID${i}" name="students[${i}][id]" required>
+                    <label for="department${i}">Department:</label>
+                    <input type="text" id="department${i}" name="students[${i}][department]" required>
+                    <label for="section${i}">Section:</label>
+                    <input type="text" id="section${i}" name="students[${i}][section]" required>
+                    <label for="subject${i}">Subject:</label>
+                    <input type="text" id="subject${i}" name="students[${i}][subject]" required>
+                `;
+                studentFormContainer.appendChild(studentForm);
+            }
+        }
+
+        function submitData() {
+            // Collect classroom data
+            const classrooms = [];
+            document.querySelectorAll("#classroomForms > div").forEach((classroom, index) => {
+                classrooms.push({
+                    name: document.getElementById(`classroomName${index}`).value,
+                    num_columns: parseInt(document.getElementById(`numColumns${index}`).value),
+                    seats_per_column: parseInt(document.getElementById(`seatsPerColumn${index}`).value),
+                });
+            });
+
+            // Collect student data
+            const students = [];
+            document.querySelectorAll("#studentForms > div").forEach((student, index) => {
+                students.push({
+                    student_id: document.getElementById(`studentID${index}`).value,
+                    department: document.getElementById(`department${index}`).value,
+                    section: document.getElementById(`section${index}`).value,
+                    subject: document.getElementById(`subject${index}`).value,
+                });
+            });
+
+            // Submit data to /seatingArrangement
+            fetch("/seatingArrangement", {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ classrooms, students }),
+            })
+                .then((response) => response.json())
+                .then((data) => {
+                    console.log(data);
+                    alert("Seating arrangement generated successfully!");
+                })
+                .catch((error) => {
+                    console.error("Error:", error);
+                });
+        }
+    </script>
+</head>
+<body>
+    <h1>Seating Arrangement</h1>
+
+    <!-- Initial Input for Number of Classrooms and Students -->
+    <label for="numClassrooms">Number of Classrooms:</label>
+    <input type="number" id="numClassrooms" name="numClassrooms" required>
+    <label for="numStudents">Number of Students:</label>
+    <input type="number" id="numStudents" name="numStudents" required>
+    <button type="button" onclick="generateForms()">Generate Forms</button>
+
+    <!-- Dynamic Forms for Classroom and Student Details -->
+    <div id="classroomForms"></div>
+    <div id="studentForms"></div>
+
+    <!-- Submit Button -->
+    <button type="button" onclick="submitData()">Submit</button>
+</body>
+</html>
