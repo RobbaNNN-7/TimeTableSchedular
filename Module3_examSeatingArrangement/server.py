@@ -19,7 +19,10 @@ def seating_arrangement_route():
         "seatingArrangement": [
             {
                 "classroom": classroom.name,
-                "seating": classroom.seating,
+                "seating": [
+                [student.to_dict() for student in column]
+                for column in classroom.seating
+            ]
             }
             for classroom in arrangement
         ]

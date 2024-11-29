@@ -16,3 +16,11 @@ class Classroom:
             self.seating[column].append(student_id)
         else:
             raise ValueError(f"Column {column} is full in classroom {self.name}.")
+    
+    def to_dict(self):
+        return {
+            "name": self.name,
+            "num_columns": self.num_columns,
+            "seats_per_column": self.seats_per_column,
+            "seating": [[student.to_dict() for student in column] for column in self.seating],
+        }
