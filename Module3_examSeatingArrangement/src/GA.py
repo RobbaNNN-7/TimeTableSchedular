@@ -8,7 +8,7 @@ class GeneticAlgorithm:
     
 
     def __init__(self, students: List[Student], classrooms: List[Classroom]):
-        self.PopulationCount = 100
+        self.PopulationCount = 200
         self.population = []
         self.students = students
         self.classrooms = classrooms
@@ -130,7 +130,7 @@ class GeneticAlgorithm:
         
         # Calculate total fitness and probabilities
         total_fitness = sum(fitness_scores)
-        probabilities = [score / total_fitness for score in fitness_scores]
+        probabilities = [1/len(fitness_scores) for _ in fitness_scores] if total_fitness == 0 else [score / total_fitness for score in fitness_scores]
         
         # Create cumulative probability distribution
         cumulative_probs = []
@@ -275,7 +275,7 @@ class GeneticAlgorithm:
 
 
     
-    def evolve(self, generations=100, elite_count=10, mutation_rate=0.2):
+    def evolve(self, generations=10000, elite_count=10, mutation_rate=0.2):
         """
         Perform the genetic algorithm's iterative evolution.
 
@@ -287,6 +287,7 @@ class GeneticAlgorithm:
         Returns:
             list[Classroom]: The best chromosome found after evolution.
         """
+        
         # Generate initial population
         self.generate_initial_population()
 
