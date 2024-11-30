@@ -15,18 +15,22 @@ def seating_arrangement_route():
     students = [Student(**s) for s in data['students']]
     ga = GeneticAlgorithm(students, classrooms)
     arrangement = ga.evolve()
-    return {
+
+    response = {
         "seatingArrangement": [
             {
                 "classroom": classroom.name,
                 "seating": [
-                [student.to_dict() for student in column]
-                for column in classroom.seating
-            ]
+                    [
+                        student.to_dict() for student in column
+                    ] for column in classroom.seating
+                ]
             }
             for classroom in arrangement
         ]
     }
+
+    return response
 
 
 if __name__ == '__main__':

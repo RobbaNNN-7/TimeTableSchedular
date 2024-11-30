@@ -62,7 +62,7 @@
                 const [type, index, field] = key.split(/[\[\]]/).filter(Boolean);
                 if (type === 'classrooms') {
                     if (!data.classrooms[index]) data.classrooms[index] = {};
-                    data.classrooms[index][field] = value;
+                    data.classrooms[index][field] = field === 'num_columns' || field === 'seats_per_column' ? parseInt(value) : value;
                 } else if (type === 'students') {
                     if (!data.students[index]) data.students[index] = {};
                     data.students[index][field] = value;
@@ -94,8 +94,9 @@
                 const classroomDiv = document.createElement("div");
                 classroomDiv.innerHTML = `<h3>${classroom.classroom}</h3>`;
                 
-                classroom.seating.forEach(column => {
+                classroom.seating.forEach((column, columnIndex) => {
                     const columnDiv = document.createElement("div");
+                    columnDiv.innerHTML = `<h4>Column ${columnIndex + 1}</h4>`;
                     column.forEach(student => {
                         const studentDiv = document.createElement("div");
                         studentDiv.textContent = `ID: ${student.student_id}, Department: ${student.department}, Section: ${student.section}, Subject: ${student.subject}`;
