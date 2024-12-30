@@ -1,75 +1,121 @@
 {
     "batchSections": [
-      {
-        "batch": "2023",
-        "department": "CS",
-        "sections": ["A", "B", "C"]
-      },
-      {
-        "batch": "2023",
-        "department": "EE",
-        "sections": ["D", "E"]
-      }
+        {
+            "batch": "2023",
+            "department": "CS",
+            "sections": [
+                "A",
+                "B",
+                "C",
+                "D",
+                "E"
+            ]
+        },
+        {
+            "batch": "2024",
+            "department": "AI",
+            "sections": [
+                "A",
+                "B"
+            ]
+        }
     ],
     "subjects": [
-      {
-        "name": "Data Structures",
-        "batch": "2023",
-        "department": "CS",
-        "sections": ["A", "B","C"],
-        "instructor": "Dr. Smith"
-      },
-      {
-        "name": "Data Structures",
-        "batch": "2023",
-        "department": "CS",
-        "sections": ["D","E"],
-        "instructor": "Dr. Chawla"
-      },
-      {
-        "name": "Digital Circuits",
-        "batch": "2023",
-        "department": "EE",
-        "sections": ["A", "B","C"],
-        "instructor": "Prof. Johnson"
-      },
-      {
-        "name": "Data Structures",
-        "batch": "2023",
-        "department": "EE",
-        "sections": ["A", "B","C"],
-        "instructor": "Prof. Lali"
-      },
-      {
-        "name": "Probability",
-        "batch": "2023",
-        "department": "CS",
-        "sections": ["A","B","C","D","E"],
-        "instructor": "Dr. Nigga"
-      },
-      {
-        "name": "IS",
-        "batch": "2023",
-        "department": "CS",
-        "sections": ["A","B","C","D","E"],
-        "instructor": "Dr. Gello"
-      },
-      {
-        "name": "Islamiat",
-        "batch": "2023",
-        "department": "CS",
-        "sections": ["A","B","C","D","E"],
-        "instructor": "Dr. Ammar"
-      },
-      {
-        "name": "Calculus",
-        "batch": "2023",
-        "department": "EE",
-        "sections": ["A", "B","C"],
-        "instructor": "Prof. JohnnyBoi"
-      }
+        {
+            "name": "Islamiat",
+            "batch": "2023",
+            "department": "CS",
+            "sections": [
+                "A",
+                "B",
+                "C",
+                "D",
+                "E"
+            ],
+            "instructor": "Ammar"
+        },
+        {
+            "name": "IS",
+            "batch": "2023",
+            "department": "CS",
+            "sections": [
+                "A",
+                "B",
+                "C",
+                "D",
+                "E"
+            ],
+            "instructor": "Dr.Madiha"
+        },
+        {
+            "name": "Islamiat",
+            "batch": "2024",
+            "department": "AI",
+            "sections": [
+                "A",
+                "B"
+            ],
+            "instructor": "Ammar"
+        },
+        {
+            "name": "DSA",
+            "batch": "2024",
+            "department": "AI",
+            "sections": [
+                "A",
+                "B"
+            ],
+            "instructor": "Ammar"
+        },
+        {
+            "name": "DSA",
+            "batch": "2023",
+            "department": "CS",
+            "sections": [
+                "D"
+            ],
+            "instructor": "Syed Imran Ali"
+        },
+        {
+            "name": "DSA",
+            "batch": "2023",
+            "department": "CS",
+            "sections": [
+                "A,B,C,E"
+            ],
+            "instructor": "Prof 2"
+        },
+        {
+            "name": "A,B,C",
+            "batch": "2023",
+            "department": "CS",
+            "sections": [
+                "A",
+                "B",
+                "C"
+            ],
+            "instructor": "Sir 1"
+        },
+        {
+            "name": "AI",
+            "batch": "2023",
+            "department": "CS",
+            "sections": [
+                "A,B,C,E"
+            ],
+            "instructor": "Prof 2"
+        },
+        {
+            "name": "FOCP",
+            "batch": "2024",
+            "department": "AI",
+            "sections": [
+                "A",
+                "B"
+            ],
+            "instructor": "Junaid Younas"
+        }
     ],
-    "startDate": "2024-12-01",
-    "endDate": "2024-12-10"
-  }
-  
+    "startDate": "2024-12-02",
+    "endDate": "2024-12-06"
+}

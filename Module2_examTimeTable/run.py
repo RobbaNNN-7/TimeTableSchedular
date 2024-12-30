@@ -28,7 +28,8 @@ def main():
     timeslots = generate_valid_timeslots(start_date, end_date)
     
     schedule = solve_csp(data['subjects'], data['batchSections'], timeslots)
-    ga = GeneticAlgorithm(schedule)
+    print(schedule)
+    ga = GeneticAlgorithm(schedule,data["startDate"],data["endDate"])
     best_schedule = ga.run()
     best_schedule=generate_schedule_with_timeslots(best_schedule,data['subjects'])
         
