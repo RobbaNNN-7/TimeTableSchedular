@@ -4,3 +4,15 @@ class Student:
         self.department = department
         self.section = section
         self.subject = subject
+    
+    def __str__(self):
+        """Readable representation of a student."""
+        return f"ID: {self.student_id}, Dept: {self.department}, Section: {self.section}, Subject: {self.subject}"
+
+    def to_dict(self):
+        return {
+            "student_id": self.student_id,
+            "department": self.department,
+            "section": self.section,
+            "subject": self.subject,
+        }

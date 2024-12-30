@@ -1,8 +1,8 @@
 from typing import List, Dict, Tuple
 import random
-from openpyxl import Workbook
-from openpyxl.styles import PatternFill, Border, Side, Alignment, Font
-from openpyxl.utils import get_column_letter
+from openpyxl import Workbook # type: ignore
+from openpyxl.styles import PatternFill, Border, Side, Alignment, Font # type: ignore # type: ignore
+from openpyxl.utils import get_column_letter # type: ignore
 
 class TimeTableCSP:
     def __init__(self):
@@ -13,16 +13,16 @@ class TimeTableCSP:
         
         # Courses with format: {name: {'theory': hours, 'lab': hours}}
         self.courses = {
-            'Data Structures': {'theory': 3, 'lab': 3},
+            'Data Structures': {'theory': 3, 'lab': 0},
             'Programming': {'theory': 3, 'lab': 3},
             'Algorithms': {'theory': 3, 'lab': 0},
-            'Database': {'theory': 3, 'lab': 3},
+            'Database': {'theory': 3, 'lab': 0},
             'Networks': {'theory': 2, 'lab': 0},
-            'Operating Systems': {'theory': 2, 'lab': 3}
+            'Operating Systems': {'theory': 2, 'lab':3 }
         }
         
-        self.theory_rooms = ['Room101', 'Room102', 'Room103']
-        self.lab_rooms = ['Lab101', 'Lab102']
+        self.theory_rooms = ['Room101', 'Room102', 'Room103', 'Room104', 'Room105']
+        self.lab_rooms = ['Lab101', 'Lab102', 'Lab103', 'Lab104', 'Lab105']
         
         # Initialize empty timetable
         self.timetable = {
@@ -31,6 +31,16 @@ class TimeTableCSP:
                 for day in range(len(self.days))
             }
             for section in self.sections
+        }
+
+        self.room_schedule = {
+
+            room:{   
+                day: [False] * self.hours_per_day
+                for day in range(len(self.days))
+            }
+
+            for room in (self.theory_rooms + self.lab_rooms)
         }
         
         # Set break time for all sections
@@ -45,8 +55,68 @@ class TimeTableCSP:
                     'room': 'Break',
                     'type': 'break'
                 }
+    
+    def is_consective_slots(self,section:str,day:int,hour:int,course:str)->bool:
 
-    def is_slot_free(self, section: str, day: int, hour: int, duration: int = 1) -> bool:
+        """ FUNCTION TO NOT ALLOW THREE CONSECTIVE SLOTS """
+        for start in range(hour-2,hour-1,hour):
+            if start >= 0 and start <= self.hours_per_day:
+
+                # Checking if Break Time Comes in Between
+                if start + 1 ==  self.break_hour:
+                    return self.helper_consective(section,day,hour-1,course)
+
+                return self.helper_consective(section,day,hour,course)  
+        return True
+    
+    """ Helper Function for is_consective_slots Function"""
+    def helper_consective(self,section,day,hour,course):
+        slot_1 = self.timetable[section][day][hour-2]
+        slot_2 = self.timetable[section][day][hour-1]
+        slot_3 = self.timetable[section][day][hour]
+
+        if (
+            slot_1
+            and slot_2
+            and slot_3
+            and slot_1['course'] == course
+            and slot_2['course'] == course
+            and slot_3['course'] == course):
+
+            return False
+        
+    """
+        I have to write a function that does not allow, a gap in course slots
+
+        Eg : 
+            if DSA is in slot four then either terminate DSA for the day of make it consective 
+            dont make gaps in between
+
+    """
+
+    def is_gap(self, section: str, day: int, course: str) -> bool:
+        """
+        Check if there are interruptions (other courses or empty slots) between
+        occurrences of a specific course on a given day for a section.
+        """
+        found_first = False  # Track if the first occurrence of the course is found
+
+        for hour in range(self.hours_per_day):
+            slot = self.timetable[section][day][hour]
+
+            if slot and slot['course'] == course:  # If this slot is the course we're checking
+                if not found_first:
+                    found_first = True  # Mark the first occurrence
+                else:
+                    continue  # This is a subsequent occurrence; no gap detected yet
+            elif found_first:  # If the first occurrence was found and this slot is not the course
+                # If we encounter another course or an empty slot after the first occurrence
+                if not (slot and slot['course'] == "Break"):  # Exclude break slots
+                    return True
+
+        return False
+ 
+    def is_slot_free(self, section: str, day: int, hour: int,course:str = None,duration: int = 1,room : str = None) -> bool:
         """Check if a time slot is free for the given duration"""
         if hour + duration > self.hours_per_day:
             return False
@@ -54,32 +124,63 @@ class TimeTableCSP:
         # Check if the slot overlaps with break time
         if any(h == self.break_hour for h in range(hour, hour + duration)):
             return False
-            
-        return all(self.timetable[section][day][h] is None 
-                  for h in range(hour, hour + duration))
-
-    def find_free_slot(self, section: str, duration: int = 1) -> Tuple[int, int]:
-        """Find a free slot for the given duration"""
-        possible_slots = []
-        for day in range(len(self.days)):
-            for hour in range(self.hours_per_day - duration + 1):
-                if self.is_slot_free(section, day, hour, duration):
-                    possible_slots.append((day, hour))
         
-        return random.choice(possible_slots) if possible_slots else None
+        # Checking Slot Availibility
+        if not all(self.timetable[section][day][h] is None 
+                  for h in range(hour, hour + duration)):
+                    return False
+        
+        # Checking Room Availibility
+        if room:
+            if not all(not self.room_schedule[room][day][h]
+            for h in range(hour,hour+duration)):
+                return False
+        
+        # Checking Three Consective Slots
+        if course:
+            course_name = f"{course} Lab" if duration > 1 else course
+            if not self.is_consective_slots(section,day,hour,course):
+                return False
+        
+        # Cheking For Gaps
+        if course:
+            if self.is_gap(section,day,course):
+                return False
 
-    def schedule_session(self, section: str, course: str, is_lab: bool):
+        """ Availible """
+        return True
+
+
+
+    def find_free_slot_and_room(self, section: str, duration: int = 1, is_lab: bool = False,course:str = None) -> Tuple[int, int, str]:
+        """Find a free slot and room with intelligent backtracking"""
+        # Randomize search order to increase solution probability
+        days = list(range(len(self.days)))
+        hours = list(range(self.hours_per_day - duration + 1))
+        rooms = self.lab_rooms if is_lab else self.theory_rooms
+
+        random.shuffle(days)
+        random.shuffle(hours)
+        random.shuffle(rooms)
+
+        for day in days:
+            for hour in hours:
+                for room in rooms:
+                    if self.is_slot_free(section, day, hour,course, duration, room):
+                        return day, hour, room
+        
+        return None
+
+    def schedule_session(self, section: str, course: str, is_lab: bool)->bool:
         """Schedule a theory or lab session"""
         duration = 3 if is_lab else 1
-        room_list = self.lab_rooms if is_lab else self.theory_rooms
         course_name = f"{course} Lab" if is_lab else course
         
-        slot = self.find_free_slot(section, duration)
+        slot = self.find_free_slot_and_room(section, duration,is_lab)
         if not slot:
-            return False
+            return False # Not Possible To Assign
         
-        day, start_hour = slot
-        room = random.choice(room_list)
+        day, start_hour ,room = slot
         
         # Schedule the session
         for hour in range(start_hour, start_hour + duration):
@@ -88,25 +189,35 @@ class TimeTableCSP:
                 'room': room,
                 'type': 'lab' if is_lab else 'theory'
             }
+            self.room_schedule[room][day][hour] = True # Room Scheduled
         return True
 
-    def generate_timetable(self):
-        for section in self.sections:
-            # First schedule labs (as they need 3 consecutive hours)
-            for course, hours in self.courses.items():
-                if hours['lab'] > 0:
-                    if not self.schedule_session(section, course, is_lab=True):
-                        return False
-            
-            # Then schedule theory classes
-            for course, hours in self.courses.items():
-                for _ in range(hours['theory']):
-                    if not self.schedule_session(section, course, is_lab=False):
-                        return False
-        return True
+    def generate_timetable(self) -> bool:
+        """Improved timetable generation with backtracking"""
+        # First schedule labs (require 3 consecutive hours)
+        for course, hours in self.courses.items():
+            if hours['lab'] > 0:
+                lab_scheduled = all(
+                    self.schedule_session(section, course, is_lab=True)
+                    for section in self.sections
+                )
+                if not lab_scheduled:
+                    return False
+        
+        # Then schedule theory classes
+        for course, hours in self.courses.items():
+            for _ in range(hours['theory']):
+                theory_scheduled = all(
+                    self.schedule_session(section, course, is_lab=False)
+                    for section in self.sections
+                )
+                if not theory_scheduled:
+                    return False
+        
+        return True 
 
     def solve(self):
-        max_attempts = 100
+        max_attempts = 10000
         for attempt in range(max_attempts):
             # Reset timetable
             self.timetable = {
@@ -115,6 +226,17 @@ class TimeTableCSP:
                     for day in range(len(self.days))
                 }
                 for section in self.sections
+            }
+
+            # reset rooms
+
+            
+            self.room_schedule = {
+                room: {   
+                    day: [False] * self.hours_per_day
+                    for day in range(len(self.days))
+                }
+                for room in (self.theory_rooms + self.lab_rooms)
             }
             
             # Set break time before generating schedule
