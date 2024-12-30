@@ -57,9 +57,9 @@ class Individual:
                     batch_dept_schedule[key][schedule_key] = 0
                 batch_dept_schedule[key][schedule_key] += 1
                 
-                # Make same-time constraint violation extremely costly (-1000)
-                if batch_dept_schedule[key][schedule_key] > 1:
-                    fitnessScore -= float("-inf")  # Increased from -500 to -1000
+                # # Make same-time constraint violation extremely costly (-1000)
+                # if batch_dept_schedule[key][schedule_key] > 1:
+                #     fitnessScore -= float("-inf")  # Increased from -500 to -1000
                     
                 # Significant penalty (-300) for same batch+dept having multiple exams on same day
                 same_day_exams = sum(1 for k, v in batch_dept_schedule[key].items() 
