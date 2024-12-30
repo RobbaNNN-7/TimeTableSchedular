@@ -2,9 +2,10 @@ from genetic_utils import *
 from csp import *
 import random
 import copy
+from datetime import datetime, timedelta
 
 class GeneticAlgorithm:
-    def __init__(self, initial_schedule, start_date, end_date, population_size=20, generations=1500, mutation_rate=0.1):
+    def __init__(self, initial_schedule, start_date, end_date, population_size=50, generations=600, mutation_rate=0.1):
         self.population_size = population_size
         self.generations = generations
         self.mutation_rate = mutation_rate
@@ -12,70 +13,74 @@ class GeneticAlgorithm:
         self.end_date = datetime.strptime(end_date, "%Y-%m-%d")
         self.population = [Individual(copy.deepcopy(initial_schedule)) for _ in range(population_size)]
 
-    
+    def validate_schedule(self, schedule, batch_dept, date, timeslot):
+        """
+        Validates if a given schedule slot is valid for a batch_dept
+        Returns True if valid, False if conflicts exist
+        """
+        schedule_key = f"{date}_{timeslot}"
+        
+        # Check all existing exams for this batch_dept
+        for key, exam in schedule.items():
+            parts = key.split("_")
+            current_batch_dept = f"{parts[0]}_{parts[1]}"
+            
+            if current_batch_dept == batch_dept:
+                # Check for same time slot conflict
+                if exam['date'] == date and exam['timeslot'] == timeslot:
+                    return False
+                # Check for same day conflict
+                if exam['date'] == date:
+                    return False
+        return True
 
-    # In genetic.py
+    def get_valid_slot(self, schedule, batch_dept):
+        """
+        Finds a valid slot for a given batch_dept that doesn't violate constraints
+        """
+        valid_slots = []
+        current = self.start_date
+        
+        while current <= self.end_date:
+            date_str = current.strftime("%Y-%m-%d")
+            for timeslot in ["10-12", "2-4"]:
+                if self.validate_schedule(schedule, batch_dept, date_str, timeslot):
+                    valid_slots.append((date_str, timeslot))
+            current += timedelta(days=1)
+        
+        return random.choice(valid_slots) if valid_slots else None
+
     def crossover(self, parent1, parent2):
         child_chromosome = {}
         keys = list(parent1.chromosome.keys())
         
-        # Track dates and timeslots by batch and department
-        batch_dept_schedule = {}
-        
-        # First, copy a random selection of genes from parent1 
-        # (these are guaranteed to be valid since parent1 is valid)
+        # First phase: Copy random selection from parent1
         for key in keys:
             if random.random() < 0.5:
                 child_chromosome[key] = copy.deepcopy(parent1.chromosome[key])
-                parts = key.split("_")
-                batch_dept = f"{parts[0]}_{parts[1]}"
-                if batch_dept not in batch_dept_schedule:
-                    batch_dept_schedule[batch_dept] = {
-                        'slots': set(),  # Track date+timeslot combinations
-                        'dates': set()   # Track dates
-                    }
-                schedule_key = f"{child_chromosome[key]['date']}_{child_chromosome[key]['timeslot']}"
-                batch_dept_schedule[batch_dept]['slots'].add(schedule_key)
-                batch_dept_schedule[batch_dept]['dates'].add(child_chromosome[key]['date'])
-
-        # Then fill remaining genes only with valid slots
+        
+        # Second phase: Fill remaining slots with valid assignments
         for key in keys:
             if key not in child_chromosome:
                 parts = key.split("_")
                 batch_dept = f"{parts[0]}_{parts[1]}"
                 
-                if batch_dept not in batch_dept_schedule:
-                    # If no previous exams for this batch+dept, can use parent2's slot
-                    child_chromosome[key] = copy.deepcopy(parent2.chromosome[key])
-                    batch_dept_schedule[batch_dept] = {
-                        'slots': {f"{child_chromosome[key]['date']}_{child_chromosome[key]['timeslot']}"},
-                        'dates': {child_chromosome[key]['date']}
-                    }
+                # Try parent2's slot first
+                parent2_slot = parent2.chromosome[key]
+                if self.validate_schedule(child_chromosome, batch_dept, 
+                                       parent2_slot['date'], parent2_slot['timeslot']):
+                    child_chromosome[key] = copy.deepcopy(parent2_slot)
                 else:
-                    # Find valid slot that doesn't conflict
-                    valid_slots = []
-                    current = self.start_date
-                    while current <= self.end_date:
-                        date_str = current.strftime("%Y-%m-%d")
-                        for timeslot in ["10-12", "2-4"]:
-                            test_key = f"{date_str}_{timeslot}"
-                            if (test_key not in batch_dept_schedule[batch_dept]['slots'] and 
-                                date_str not in batch_dept_schedule[batch_dept]['dates']):
-                                valid_slots.append((date_str, timeslot))
-                        current += timedelta(days=1)
-                    
-                    if valid_slots:
-                        chosen_date, chosen_timeslot = random.choice(valid_slots)
-                        child_chromosome[key] = copy.deepcopy(parent2.chromosome[key])
-                        child_chromosome[key]["date"] = chosen_date
-                        child_chromosome[key]["timeslot"] = chosen_timeslot
-                        
-                        schedule_key = f"{chosen_date}_{chosen_timeslot}"
-                        batch_dept_schedule[batch_dept]['slots'].add(schedule_key)
-                        batch_dept_schedule[batch_dept]['dates'].add(chosen_date)
+                    # Find a new valid slot
+                    valid_slot = self.get_valid_slot(child_chromosome, batch_dept)
+                    if valid_slot:
+                        date, timeslot = valid_slot
+                        child_chromosome[key] = {
+                            'date': date,
+                            'timeslot': timeslot
+                        }
                     else:
-                        # If no valid slots found, keep parent1's gene
-                        # (which we know is valid)
+                        # If no valid slot found, use parent1's slot
                         child_chromosome[key] = copy.deepcopy(parent1.chromosome[key])
         
         return Individual(child_chromosome)
@@ -84,102 +89,42 @@ class GeneticAlgorithm:
         mutated_chromosome = copy.deepcopy(individual.chromosome)
         keys = list(mutated_chromosome.keys())
         
-        # Track schedule by batch, department, date and timeslot
-        batch_dept_schedules = {}
-        
-        # First, build current schedule
-        for key in keys:
-            parts = key.split("_")
-            batch_dept = f"{parts[0]}_{parts[1]}"
-            if batch_dept not in batch_dept_schedules:
-                batch_dept_schedules[batch_dept] = {
-                    'date_slots': set(),  # Track date+timeslot combinations
-                    'dates': set()        # Track just dates for same-day check
-                }
-                
-            current_date = mutated_chromosome[key]["date"]
-            current_slot = mutated_chromosome[key]["timeslot"]
-            schedule_key = f"{current_date}_{current_slot}"
-            
-            batch_dept_schedules[batch_dept]['date_slots'].add(schedule_key)
-            batch_dept_schedules[batch_dept]['dates'].add(current_date)
-        
-        # Now do mutations
         for key in keys:
             if random.random() < self.mutation_rate:
                 parts = key.split("_")
                 batch_dept = f"{parts[0]}_{parts[1]}"
                 
-                # Get current schedule
-                current_date = mutated_chromosome[key]["date"]
-                current_slot = mutated_chromosome[key]["timeslot"]
-                current_key = f"{current_date}_{current_slot}"
+                # Temporarily remove current exam for proper validation
+                current_exam = mutated_chromosome.pop(key)
                 
-                # Remove current schedule from tracking
-                if current_key in batch_dept_schedules[batch_dept]['date_slots']:
-                    batch_dept_schedules[batch_dept]['date_slots'].remove(current_key)
-                if current_date in batch_dept_schedules[batch_dept]['dates']:
-                    batch_dept_schedules[batch_dept]['dates'].remove(current_date)
+                # Find new valid slot
+                valid_slot = self.get_valid_slot(mutated_chromosome, batch_dept)
                 
-                # Try to find a valid new slot that doesn't violate constraints
-                valid_slots = []
-                current = self.start_date
-                while current <= self.end_date:
-                    date_str = current.strftime("%Y-%m-%d")
-                    for timeslot in ["10-12", "2-4"]:
-                        test_key = f"{date_str}_{timeslot}"
-                        # Check both time slot conflict and same-day constraint
-                        if (test_key not in batch_dept_schedules[batch_dept]['date_slots'] and
-                            (date_str not in batch_dept_schedules[batch_dept]['dates'] or
-                            len(batch_dept_schedules[batch_dept]['dates']) == 0)):
-                            valid_slots.append((date_str, timeslot))
-                    current += timedelta(days=1)
-                
-                if valid_slots:
-                    # Pick new slot and update
-                    new_date, new_timeslot = random.choice(valid_slots)
-                    new_key = f"{new_date}_{new_timeslot}"
-                    
-                    mutated_chromosome[key]["date"] = new_date
-                    mutated_chromosome[key]["timeslot"] = new_timeslot
-                    
-                    # Update tracking
-                    batch_dept_schedules[batch_dept]['date_slots'].add(new_key)
-                    batch_dept_schedules[batch_dept]['dates'].add(new_date)
+                if valid_slot:
+                    date, timeslot = valid_slot
+                    mutated_chromosome[key] = {
+                        'date': date,
+                        'timeslot': timeslot
+                    }
                 else:
-                    # If no valid slot found, keep original schedule
-                    batch_dept_schedules[batch_dept]['date_slots'].add(current_key)
-                    batch_dept_schedules[batch_dept]['dates'].add(current_date)
-                    mutated_chromosome[key]["date"] = current_date
-                    mutated_chromosome[key]["timeslot"] = current_slot
+                    # If no valid slot found, restore original
+                    mutated_chromosome[key] = current_exam
         
         return Individual(mutated_chromosome)
 
     def run(self):
-        # Main GA loop
         for generation in range(self.generations):
-            # Evaluate fitness and sort population
             self.population.sort(key=lambda ind: ind.fitness, reverse=True)
-
-            # Elitism: Preserve the top individuals
-            next_generation = self.population[:5]  # Keep top 5 individuals
-
-            # Generate the rest of the next generation using tournament selection
+            next_generation = self.population[:2]  # Elitism
+            
             while len(next_generation) < self.population_size:
-                # Tournament selection
-                tournament_size = 5
-                tournament = random.sample(self.population, tournament_size)
-                parent1 = max(tournament, key=lambda ind: ind.fitness)
-                tournament = random.sample(self.population, tournament_size)
-                parent2 = max(tournament, key=lambda ind: ind.fitness)
-                
+                parent1, parent2 = random.sample(self.population[:10], 2)
                 child = self.crossover(parent1, parent2)
                 child = self.mutate(child)
                 next_generation.append(child)
-
+            
             self.population = next_generation
-
-        # Return the best schedule from the final population
+        
         return self.population[0].chromosome
 
 
