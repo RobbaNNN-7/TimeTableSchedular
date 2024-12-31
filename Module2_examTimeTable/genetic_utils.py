@@ -35,30 +35,44 @@ class Individual:
         return batch_department_schedule
 
     def calcFitness(self):
-        fitnessScore=1000
-        schedule=self.extractSchedule()
+        fitnessScore = 1000
+        schedule = self.extractSchedule()
+        
+        # Track exams by batch+department+date+timeslot combination
+        batch_dept_schedule = {}
         
         # Iterate over each batch and department
         for (batch, department), exams in schedule.items():
-            
-            # Extract all dates for the current department
-            dates = [exam['date'] for exam in exams]
-            days=[(exam['day'],exam['timeslot']) for exam in exams]
-
-            for (day,timeslot) in days:
-                if day=="Friday" and timeslot=="2-4": # If exam on Friday 2-4 slot decrease fitnessScore
-                    fitnessScore-=30
-
-                if day=="Saturday": #If exam on Saturday decrease fitnessScore
-                    fitnessScore=-50
+            key = f"{batch}_{department}"
+            if key not in batch_dept_schedule:
+                batch_dept_schedule[key] = {}
+                
+            # Count exams per date and timeslot for this batch+department
+            for exam in exams:
+                date = exam['date']
+                timeslot = exam['timeslot']
+                schedule_key = f"{date}_{timeslot}"
+                
+                if schedule_key not in batch_dept_schedule[key]:
+                    batch_dept_schedule[key][schedule_key] = 0
+                batch_dept_schedule[key][schedule_key] += 1
+                
+                # # Make same-time constraint violation extremely costly (-1000)
+                # if batch_dept_schedule[key][schedule_key] > 1:
+                #     fitnessScore -= float("-inf")  # Increased from -500 to -1000
                     
-
-            # Compare each date with the others in the list
-            for i, date1 in enumerate(dates):
-                for j, date2 in enumerate(dates):
-                    if i != j:  # Skip comparing the same exam with itself
-                        if date1 == date2: #If there are 2 exams in a day decrease fitnessScore
-                            fitnessScore-=40
+                # Significant penalty (-300) for same batch+dept having multiple exams on same day
+                same_day_exams = sum(1 for k, v in batch_dept_schedule[key].items() 
+                                if k.split('_')[0] == date)
+                if same_day_exams > 1:
+                    fitnessScore -= 300  # Increased from -200 to -300
+                
+                # Normal penalties
+                if exam['day'] == "Friday" and exam['timeslot'] == "2-4":
+                    fitnessScore -= 30
+                if exam['day'] == "Saturday":
+                    fitnessScore -= 50
+                    
         return fitnessScore
 
 

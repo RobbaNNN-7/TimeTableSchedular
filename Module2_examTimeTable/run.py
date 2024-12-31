@@ -4,14 +4,14 @@ def generate_schedule_with_timeslots(schedule,subjects):
     # Initialize the result structure to match the input JSON format
     subjectsTimeSlots={}
     for key, value in schedule.items():
-        parts = key.split("_")  # Split the key by underscore
-        subject=parts[2]
-        subjectsTimeSlots[subject]=[value["timeslot"],value["date"]]
+        print(key,value)
+        subjectsTimeSlots[key]=[value["timeslot"],value["date"]]
 
     for subject in subjects:
         subject["sections"] = ', '.join(subject["sections"])
-        subject["date"]=subjectsTimeSlots[subject["name"]][1]
-        subject["timeslot"]=subjectsTimeSlots[subject["name"]][0]
+        key=subject["batch"]+"_"+subject["department"]+"_"+subject["name"]
+        subject["date"]=subjectsTimeSlots[key][1]
+        subject["timeslot"]=subjectsTimeSlots[key][0]
         
 
     return subjects
@@ -28,12 +28,12 @@ def main():
     timeslots = generate_valid_timeslots(start_date, end_date)
     
     schedule = solve_csp(data['subjects'], data['batchSections'], timeslots)
-    ga = GeneticAlgorithm(schedule)
+    ga = GeneticAlgorithm(schedule,data["startDate"],data["endDate"])
     best_schedule = ga.run()
+  # Print the best schedule
+    print(json.dumps(best_schedule, indent=4))
     best_schedule=generate_schedule_with_timeslots(best_schedule,data['subjects'])
         
-
-    # Print the best schedule
     print(json.dumps(best_schedule, indent=4))
 
     # Export the best schedule to an Excel file
