@@ -71,6 +71,15 @@ class TimeTableCSP:
                     return False
         return True
 
+    """
+        I have to write a function that does not allow, a gap in course slots
+
+        Eg : 
+            if DSA is in slot four then either terminate DSA for the day of make it consective 
+            dont make gaps in between
+
+    """
+
     def check_gaps(self, section: str, day: int, hour: int, course: str) -> bool:
         schedule = self.timetable[section][day]
         course_slots = [
