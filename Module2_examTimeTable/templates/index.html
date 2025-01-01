@@ -23,12 +23,12 @@
             padding: 8px;
             margin-bottom: 10px;
         }
-        #subjectList, #batchSectionList {
+        #subjectList, #batchSectionList, #departmentList {
             margin-top: 10px;
             border: 1px solid #ddd;
             padding: 10px;
         }
-        .subject-entry, .batch-section-entry {
+        .subject-entry, .batch-section-entry, .department-entry {
             display: flex;
             justify-content: space-between;
             margin-bottom: 10px;
@@ -42,19 +42,63 @@
             padding: 5px 10px;
             cursor: pointer;
         }
+        .add-department-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+        }
+        #downloadLink {
+            display: none;
+            margin-top: 10px;
+            color: blue;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+        #subjectSelection {
+            margin-top: 10px;
+        }
+        
+        #subjectSelection div {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        #subjectSelection input[type="checkbox"] {
+            margin-right: 8px;
+            width: auto;
+        }
+        
+        #subjectSelection label {
+            display: flex;
+            align-items: center;
+            margin: 0;
+        }
     </style>
 </head>
 <body>
     <h1>Exam Timetable Generator</h1>
     
     <div class="form-section">
+        <label>Manage Departments</label>
+        <div class="add-department-container">
+            <input type="text" id="newDepartmentInput" placeholder="New Department Code (e.g., CS)">
+            <input type="text" id="newDepartmentFullNameInput" placeholder="Full Department Name (e.g., Computer Science)">
+            <button id="addDepartmentBtn">Add Department</button>
+        </div>
+        <div id="departmentList"></div>
+    </div>
+
+    <div class="form-section">
         <label>Manage Batches, Departments, and Sections</label>
         <input type="text" id="batchInput" placeholder="Batch (e.g., 2023)">
         <select id="departmentInput">
             <option value="">Select Department</option>
-            <option value="CS">Computer Science</option>
-            <option value="EE">Electrical Engineering</option>
-            <option value="SE">Software Engineering</option>
         </select>
         <input type="text" id="sectionsInput" placeholder="Sections (comma-separated)">
         <button type="button" id="addBatchSectionBtn">Add Batch/Department/Sections</button>
@@ -81,6 +125,11 @@
     <div id="subjectList"></div>
 
     <div class="form-section">
+        <label>Select Subjects for Schedule</label>
+        <div id="subjectSelection"></div>
+    </div>
+
+    <div class="form-section">
         <label>Exam Period</label>
         <input type="date" id="startDateInput" required>
         <input type="date" id="endDateInput" required>
@@ -89,194 +138,370 @@
     <button id="generateScheduleBtn">Generate Schedule</button>
 
     <div id="result"></div>
+    <div id="downloadLink"></div>
 
     <script>
-        const batchSectionData = [];
-        const subjectList = [];
-
-        const batchSelect = document.getElementById('subjectBatchSelect');
-        const departmentSelect = document.getElementById('subjectDepartmentSelect');
-        const sectionSelect = document.getElementById('subjectSectionSelect');
-
-        document.getElementById('addBatchSectionBtn').addEventListener('click', function() {
-            const batch = document.getElementById('batchInput').value;
-            const department = document.getElementById('departmentInput').value;
-            const sections = document.getElementById('sectionsInput').value.split(',').map(s => s.trim()).filter(s => s);
-
-            if (batch && department && sections.length) {
-                const batchSectionEntry = {
-                    batch: batch,
-                    department: department,
-                    sections: sections
-                };
-                batchSectionData.push(batchSectionEntry);
-
-                const batchSectionListDiv = document.getElementById('batchSectionList');
-                const entryDiv = document.createElement('div');
-                entryDiv.className = 'batch-section-entry';
-                entryDiv.innerHTML = `
-                    <div>
-                        Batch: ${batch}, Department: ${department}, 
-                        Sections: ${sections.join(', ')}
-                    </div>
-                    <button class="delete-btn" onclick="deleteBatchSection(this)">Delete</button>
-                `;
-                batchSectionListDiv.appendChild(entryDiv);
-
-                // Update subject form selects
-                updateSelects();
-
-                // Clear inputs
-                document.getElementById('batchInput').value = '';
-                document.getElementById('departmentInput').selectedIndex = 0;
-                document.getElementById('sectionsInput').value = '';
-            }
-        });
-
-        function deleteBatchSection(btn) {
-            const entryDiv = btn.closest('.batch-section-entry');
-            const index = Array.from(entryDiv.parentNode.children).indexOf(entryDiv);
-            batchSectionData.splice(index, 1);
-            entryDiv.remove();
-            updateSelects();
+const storage = {
+    departments: [],
+    batchSections: [],
+    subjects: [],
+    
+    save() {
+        localStorage.setItem('departments', JSON.stringify(this.departments));
+        localStorage.setItem('batchSections', JSON.stringify(this.batchSections));
+        localStorage.setItem('subjects', JSON.stringify(this.subjects));
+    },
+    
+    load() {
+        const storedDepartments = localStorage.getItem('departments');
+        const storedBatchSections = localStorage.getItem('batchSections');
+        const storedSubjects = localStorage.getItem('subjects');
+        
+        if (storedDepartments) {
+            this.departments = JSON.parse(storedDepartments);
+            this.departments.forEach(dept => {
+                displayDepartment(dept);
+            });
         }
+        
+        if (storedBatchSections) {
+            this.batchSections = JSON.parse(storedBatchSections);
+            this.batchSections.forEach(entry => {
+                displayBatchSection(entry);
+            });
+        }
+        
+        if (storedSubjects) {
+            this.subjects = JSON.parse(storedSubjects);
+            this.subjects.forEach(subject => {
+                displaySubject(subject);
+            });
+        }
+        
+        updateSelects();
+        updateSubjectSelection();
+    },
+    
+    clear() {
+        localStorage.clear();
+        this.departments = [];
+        this.batchSections = [];
+        this.subjects = [];
+        document.getElementById('departmentList').innerHTML = '';
+        document.getElementById('batchSectionList').innerHTML = '';
+        document.getElementById('subjectList').innerHTML = '';
+        updateSelects();
+        updateSubjectSelection();
+    }
+};
 
-        function updateSelects() {
-            // Clear existing options
-            batchSelect.innerHTML = '<option value="">Select Batch</option>';
-            departmentSelect.innerHTML = '<option value="">Select Department</option>';
-            sectionSelect.innerHTML = '<option value="">Select Sections</option>';
+document.getElementById('addDepartmentBtn').addEventListener('click', function() {
+    const deptCode = document.getElementById('newDepartmentInput').value.trim();
+    const deptName = document.getElementById('newDepartmentFullNameInput').value.trim();
+    
+    if (deptCode && deptName) {
+        const department = {
+            code: deptCode,
+            name: deptName
+        };
+        
+        if (!storage.departments.some(d => d.code === deptCode)) {
+            storage.departments.push(department);
+            displayDepartment(department);
+            storage.save();
+            updateSelects();
+            
+            document.getElementById('newDepartmentInput').value = '';
+            document.getElementById('newDepartmentFullNameInput').value = '';
+        } else {
+            alert('Department already exists!');
+        }
+    } else {
+        alert('Please enter both department code and name!');
+    }
+});
 
-            // Populate batch select
-            const uniqueBatches = [...new Set(batchSectionData.map(entry => entry.batch))];
-            uniqueBatches.forEach(batch => {
+function displayDepartment(department) {
+    const departmentListDiv = document.getElementById('departmentList');
+    const departmentEntry = document.createElement('div');
+    departmentEntry.className = 'department-entry';
+    departmentEntry.innerHTML = `
+        <div>
+            ${department.code} - ${department.name}
+        </div>
+        <button class="delete-btn" onclick="deleteDepartment(this, '${department.code}')">Delete</button>
+    `;
+    departmentListDiv.appendChild(departmentEntry);
+}
+
+function deleteDepartment(btn, deptCode) {
+    const entryDiv = btn.closest('.department-entry');
+    storage.departments = storage.departments.filter(dept => dept.code !== deptCode);
+    entryDiv.remove();
+    storage.save();
+    updateSelects();
+}
+
+document.getElementById('addBatchSectionBtn').addEventListener('click', function() {
+    const batch = document.getElementById('batchInput').value.trim();
+    const department = document.getElementById('departmentInput').value.trim();
+    const sections = document.getElementById('sectionsInput').value
+        .split(',')
+        .map(s => s.trim())
+        .filter(s => s);
+
+    if (batch && department && sections.length) {
+        const exists = storage.batchSections.some(bs => 
+            bs.batch === batch && bs.department === department
+        );
+
+        if (!exists) {
+            const batchSectionEntry = {
+                batch: batch,
+                department: department,
+                sections: sections
+            };
+            
+            storage.batchSections.push(batchSectionEntry);
+            displayBatchSection(batchSectionEntry);
+            storage.save();
+            updateSelects();
+            
+            document.getElementById('batchInput').value = '';
+            document.getElementById('departmentInput').value = '';
+            document.getElementById('sectionsInput').value = '';
+        } else {
+            alert('This batch and department combination already exists!');
+        }
+    } else {
+        alert('Please fill in all fields (Batch, Department, and Sections)');
+    }
+});
+
+function displayBatchSection(entry) {
+    const batchSectionListDiv = document.getElementById('batchSectionList');
+    const entryDiv = document.createElement('div');
+    entryDiv.className = 'batch-section-entry';
+    entryDiv.innerHTML = `
+        <div>
+            Batch: ${entry.batch}, Department: ${entry.department}, 
+            Sections: ${entry.sections.join(', ')}
+        </div>
+        <button class="delete-btn" onclick="deleteBatchSection(this, '${entry.batch}_${entry.department}')">Delete</button>
+    `;
+    batchSectionListDiv.appendChild(entryDiv);
+}
+
+function deleteBatchSection(btn, key) {
+    const entryDiv = btn.closest('.batch-section-entry');
+    const [batch, department] = key.split('_');
+    storage.batchSections = storage.batchSections.filter(entry => 
+        !(entry.batch === batch && entry.department === department)
+    );
+    entryDiv.remove();
+    storage.save();
+    updateSelects();
+}
+
+function updateSelects() {
+    const batchSelect = document.getElementById('subjectBatchSelect');
+    const departmentSelect = document.getElementById('departmentInput');
+    const subjectDepartmentSelect = document.getElementById('subjectDepartmentSelect');
+    const sectionSelect = document.getElementById('subjectSectionSelect');
+
+    batchSelect.innerHTML = '<option value="">Select Batch</option>';
+    departmentSelect.innerHTML = '<option value="">Select Department</option>';
+    subjectDepartmentSelect.innerHTML = '<option value="">Select Department</option>';
+    sectionSelect.innerHTML = '<option value="">Select Sections</option>';
+
+    storage.departments.forEach(dept => {
+        const option = document.createElement('option');
+        option.value = dept.code;
+        option.textContent = `${dept.code} - ${dept.name}`;
+        departmentSelect.appendChild(option);
+        subjectDepartmentSelect.appendChild(option.cloneNode(true));
+    });
+
+    const uniqueBatches = [...new Set(storage.batchSections.map(entry => entry.batch))];
+    uniqueBatches.forEach(batch => {
+        const option = document.createElement('option');
+        option.value = batch;
+        option.textContent = batch;
+        batchSelect.appendChild(option);
+    });
+
+    batchSelect.onchange = function() {
+        const selectedBatch = this.value;
+        subjectDepartmentSelect.innerHTML = '<option value="">Select Department</option>';
+        sectionSelect.innerHTML = '<option value="">Select Sections</option>';
+
+        if (selectedBatch) {
+            const departments = storage.batchSections
+                .filter(bs => bs.batch === selectedBatch)
+                .map(bs => bs.department);
+            
+            [...new Set(departments)].forEach(dept => {
                 const option = document.createElement('option');
-                option.value = batch;
-                option.textContent = batch;
-                batchSelect.appendChild(option);
+                option.value = dept;
+                option.textContent = dept;
+                subjectDepartmentSelect.appendChild(option);
             });
+        }
+    };
 
-            // Populate department select when batch is selected
-            batchSelect.addEventListener('change', function() {
-                departmentSelect.innerHTML = '<option value="">Select Department</option>';
-                sectionSelect.innerHTML = '<option value="">Select Sections</option>';
+    subjectDepartmentSelect.onchange = function() {
+        const selectedBatch = batchSelect.value;
+        const selectedDept = this.value;
+        sectionSelect.innerHTML = '';
 
-                const selectedBatch = this.value;
-                const departments = [...new Set(
-                    batchSectionData
-                        .filter(entry => entry.batch === selectedBatch)
-                        .map(entry => entry.department)
-                )];
-
-                departments.forEach(dept => {
-                    const option = document.createElement('option');
-                    option.value = dept;
-                    option.textContent = dept;
-                    departmentSelect.appendChild(option);
-                });
-            });
-
-            // Populate section select when department is selected
-            departmentSelect.addEventListener('change', function() {
-                sectionSelect.innerHTML = '<option value="">Select Sections</option>';
-
-                const selectedBatch = batchSelect.value;
-                const selectedDepartment = this.value;
-
-                const sections = batchSectionData
-                    .filter(entry => 
-                        entry.batch === selectedBatch && 
-                        entry.department === selectedDepartment
-                    )[0]?.sections || [];
-
-                sections.forEach(section => {
+        if (selectedBatch && selectedDept) {
+            const batchSection = storage.batchSections.find(bs => 
+                bs.batch === selectedBatch && bs.department === selectedDept
+            );
+            
+            if (batchSection) {
+                batchSection.sections.forEach(section => {
                     const option = document.createElement('option');
                     option.value = section;
                     option.textContent = section;
                     sectionSelect.appendChild(option);
                 });
-            });
-        }
-
-        document.getElementById('addSubjectBtn').addEventListener('click', function() {
-            const subjectName = document.getElementById('subjectName').value;
-            const batch = batchSelect.value;
-            const department = departmentSelect.value;
-            const sections = Array.from(sectionSelect.selectedOptions).map(option => option.value);
-            const instructorName = document.getElementById('instructorName').value;
-
-            if (subjectName && batch && department && sections.length && instructorName) {
-                const subject = {
-                    name: subjectName,
-                    batch: batch,
-                    department: department,
-                    sections: sections,
-                    instructor: instructorName
-                };
-                subjectList.push(subject);
-
-                const subjectListDiv = document.getElementById('subjectList');
-                const subjectEntry = document.createElement('div');
-                subjectEntry.className = 'subject-entry';
-                subjectEntry.innerHTML = `
-                    <div>
-                        Subject: ${subjectName}, 
-                        Batch: ${batch}, 
-                        Department: ${department}, 
-                        Sections: ${sections.join(', ')}, 
-                        Instructor: ${instructorName}
-                    </div>
-                    <button class="delete-btn" onclick="deleteSubject(this)">Delete</button>
-                `;
-                subjectListDiv.appendChild(subjectEntry);
-
-                // Clear inputs
-                document.getElementById('subjectName').value = '';
-                document.getElementById('instructorName').value = '';
-                batchSelect.selectedIndex = 0;
-                departmentSelect.innerHTML = '<option value="">Select Department</option>';
-                sectionSelect.innerHTML = '<option value="">Select Sections</option>';
             }
-        });
-
-        function deleteSubject(btn) {
-            const entryDiv = btn.closest('.subject-entry');
-            const index = Array.from(entryDiv.parentNode.children).indexOf(entryDiv);
-            subjectList.splice(index, 1);
-            entryDiv.remove();
         }
+    };
+}
 
-        document.getElementById('generateScheduleBtn').addEventListener('click', function() {
-            const startDate = document.getElementById('startDateInput').value;
-            const endDate = document.getElementById('endDateInput').value;
+document.getElementById('addSubjectBtn').addEventListener('click', function() {
+    const subjectName = document.getElementById('subjectName').value.trim();
+    const batch = document.getElementById('subjectBatchSelect').value;
+    const department = document.getElementById('subjectDepartmentSelect').value;
+    const sections = Array.from(document.getElementById('subjectSectionSelect').selectedOptions).map(option => option.value);
+    const instructorName = document.getElementById('instructorName').value.trim();
 
-            const data = {
-                batchSections: batchSectionData,
-                subjects: subjectList,
-                startDate: startDate,
-                endDate: endDate
-            };
+    if (subjectName && batch && department && sections.length && instructorName) {
+        const subject = {
+            name: subjectName,
+            batch: batch,
+            department: department,
+            sections: sections,
+            instructor: instructorName
+        };
+        storage.subjects.push(subject);
+        displaySubject(subject);
+        storage.save();
+        
+        document.getElementById('subjectName').value = '';
+        document.getElementById('instructorName').value = '';
+        document.getElementById('subjectBatchSelect').selectedIndex = 0;
+        document.getElementById('subjectDepartmentSelect').innerHTML = '<option value="">Select Department</option>';
+        document.getElementById('subjectSectionSelect').innerHTML = '<option value="">Select Sections</option>';
+    } else {
+        alert('Please fill in all fields (Subject, Batch, Department, Sections, and Instructor)');
+    }
+});
 
-            fetch('/generate_schedule', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(data)
-            })
-            .then(response => response.json())
-            .then(result => {
-                const resultDiv = document.getElementById('result');
-                resultDiv.innerHTML = '<h2>Generated Exam Schedule</h2>';
-                resultDiv.innerHTML += '<pre>' + JSON.stringify(result, null, 4) + '</pre>';
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
+function displaySubject(subject) {
+    const subjectListDiv = document.getElementById('subjectList');
+    const subjectEntry = document.createElement('div');
+    subjectEntry.className = 'subject-entry';
+    const uniqueId = `${subject.name}_${subject.batch}_${subject.department}_${subject.sections.join('-')}`;
+    subjectEntry.innerHTML = `
+        <div>
+            Subject: ${subject.name}, 
+            Batch: ${subject.batch}, 
+            Department: ${subject.department}, 
+            Sections: ${subject.sections.join(', ')}, 
+            Instructor: ${subject.instructor}
+        </div>
+        <button class="delete-btn" onclick="deleteSubject(this, '${uniqueId}')">Delete</button>
+    `;
+    subjectListDiv.appendChild(subjectEntry);
+    updateSubjectSelection();
+}
+
+function deleteSubject(btn, key) {
+    const entryDiv = btn.closest('.subject-entry');
+    const [name, batch, department, sections] = key.split('_');
+    const sectionArray = sections.split('-');
+    storage.subjects = storage.subjects.filter(subject => 
+        !(subject.name === name && 
+          subject.batch === batch && 
+          subject.department === department && 
+          subject.sections.join('-') === sections)
+    );
+    entryDiv.remove();
+    storage.save();
+    updateSubjectSelection();
+}
+
+function updateSubjectSelection() {
+    const container = document.getElementById('subjectSelection');
+    container.innerHTML = storage.subjects.map(subject => `
+        <div>
+            <label>
+                <input type="checkbox" name="selectedSubjects" 
+                       value="${subject.name}_${subject.batch}_${subject.department}_${subject.sections.join('-')}"
+                       ${subject.selected ? 'checked' : ''}>
+                ${subject.name} (${subject.batch} - ${subject.department} - Section ${subject.sections.join(', ')})
+            </label>
+        </div>
+    `).join('');
+}
+
+document.getElementById('generateScheduleBtn').addEventListener('click', function() {
+    const startDate = document.getElementById('startDateInput').value;
+    const endDate = document.getElementById('endDateInput').value;
+    
+    const selectedSubjects = Array.from(document.querySelectorAll('input[name="selectedSubjects"]:checked'))
+        .map(checkbox => {
+            const [name, batch, department, sections] = checkbox.value.split('_');
+            const sectionArray = sections ? sections.split('-') : [];
+            return storage.subjects.find(subject => 
+                subject.name === name && 
+                subject.batch === batch && 
+                subject.department === department &&
+                JSON.stringify(subject.sections.sort()) === JSON.stringify(sectionArray.sort())
+            );
         });
 
-        // Initial setup of selects
-        updateSelects();
+    const data = {
+        batchSections: storage.batchSections,
+        subjects: selectedSubjects,
+        startDate: startDate,
+        endDate: endDate
+    };
+
+    fetch('/submit', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        const resultDiv = document.getElementById('result');
+        const downloadLinkDiv = document.getElementById('downloadLink');
+
+        if (result.status === 'success') {
+            resultDiv.innerHTML = '<h2>Schedule Generated Successfully!</h2>';
+            downloadLinkDiv.innerHTML = `<a href="/download/${result.filename}">Download Exam Schedule</a>`;
+            downloadLinkDiv.style.display = 'block';
+        } else {
+            resultDiv.innerHTML = `<h2>Error: ${result.message}</h2>`;
+            downloadLinkDiv.style.display = 'none';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        const resultDiv = document.getElementById('result');
+        resultDiv.innerHTML = `<h2>Error: ${error.message}</h2>`;
+    });
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    storage.load();
+});
     </script>
 </body>
 </html>

@@ -65,7 +65,7 @@ class Individual:
                 same_day_exams = sum(1 for k, v in batch_dept_schedule[key].items() 
                                 if k.split('_')[0] == date)
                 if same_day_exams > 1:
-                    fitnessScore -= 300  # Increased from -200 to -300
+                    fitnessScore -= 300  
                 
                 # Normal penalties
                 if exam['day'] == "Friday" and exam['timeslot'] == "2-4":

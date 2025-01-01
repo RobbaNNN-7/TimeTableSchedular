@@ -5,7 +5,7 @@ import copy
 from datetime import datetime, timedelta
 
 class GeneticAlgorithm:
-    def __init__(self, initial_schedule, start_date, end_date, population_size=50, generations=600, mutation_rate=0.1):
+    def __init__(self, initial_schedule, start_date, end_date, population_size=30, generations=900, mutation_rate=0.1):
         self.population_size = population_size
         self.generations = generations
         self.mutation_rate = mutation_rate
