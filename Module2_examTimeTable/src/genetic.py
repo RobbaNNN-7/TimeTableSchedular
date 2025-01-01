@@ -1,4 +1,4 @@
-from genetic_utils import *
+from src.genetic_utils import *
 import random
 import copy
 from datetime import datetime, timedelta

@@ -1,5 +1,5 @@
-from genetic import *
-from csp import *
+from src.genetic import *
+from src.csp import *
 
 def generate_schedule_with_timeslots(schedule,subjects):
     # Initialize the result structure to match the input JSON format
