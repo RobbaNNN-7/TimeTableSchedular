@@ -94,8 +94,6 @@ def solve_csp(subjects, batch_section_data, timeslots):
 
     if not enforce_arc_consistency(domains, constraints, subjects):
         return None  # No valid solution possible
-    for domain in domains:
-        print(f"{domain}: {len(domains[domain])} valid timeslots")
 
     department_timeslot_assignment = {subject['department']: {} for subject in subjects}
 
