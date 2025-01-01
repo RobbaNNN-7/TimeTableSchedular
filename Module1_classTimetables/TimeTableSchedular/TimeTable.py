@@ -1,4 +1,3 @@
-# timetable_generator.py
 from typing import List, Dict, Tuple, Optional
 import random
 from openpyxl import Workbook # type: ignore
@@ -6,7 +5,7 @@ from openpyxl.styles import PatternFill, Border, Side, Alignment, Font # type: i
 from openpyxl.utils import get_column_letter # type: ignore
 import json
 
-class TimeTableCSP:
+class TimeTable:
     def __init__(self, sections=None, courses=None, theory_rooms=None, lab_rooms=None):
         self.sections = sections or ['CSE-A', 'CSE-B', 'CSE-C', 'CSE-D', 'CSE-E']
         self.days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
@@ -20,6 +19,17 @@ class TimeTableCSP:
             'Database': {'theory': 3, 'lab': 0},
             'Networks': {'theory': 2, 'lab': 0},
             'Operating Systems': {'theory': 2, 'lab': 3}
+        }
+
+        self.max_consecutive_lectures = 2
+        self.min_lectures_per_subject = 2
+
+        self.consecutive_slots = {
+            section: {
+                day: {}
+                for day in range(len(self.days))
+            }
+            for section in self.sections
         }
         
         self.theory_rooms = theory_rooms or ['Room101', 'Room102', 'Room103', 'Room104', 'Room105']
@@ -48,6 +58,22 @@ class TimeTableCSP:
             }
             for room in (self.theory_rooms + self.lab_rooms)
         }
+        
+        for section in self.sections:
+            for day in range(len(self.days)):
+                self.timetable[section][day][self.break_hour] = {
+                    'course': 'Break',
+                    'room': 'Break',
+                    'type': 'break'
+                }
+        
+        self.room_schedule = {
+            room: {
+                day: [False] * self.hours_per_day
+                for day in range(len(self.days))
+            }
+            for room in (self.theory_rooms + self.lab_rooms)
+        }
         self._set_break_time()
 
     def _set_break_time(self):
@@ -58,6 +84,20 @@ class TimeTableCSP:
                     'room': 'Break',
                     'type': 'break'
                 }
+    def count_daily_lectures(self, section: str, day: int, course: str) -> int:
+        return sum(
+            1 for slot in self.timetable[section][day]
+            if slot and slot['course'] == course
+        )
+
+    def count_consecutive_lectures(self, section: str, day: int, start_hour: int, course: str) -> int:
+        count = 0
+        hour = start_hour
+        while hour < self.hours_per_day and self.timetable[section][day][hour] and \
+              self.timetable[section][day][hour]['course'] == course:
+            count += 1
+            hour += 1
+        return count
 
     def is_consecutive_slots(self, section: str, day: int, hour: int, course: str) -> bool:
         for start in range(hour - 2, hour + 1):
@@ -138,14 +178,49 @@ class TimeTableCSP:
                             return day, hour, room
         return None
 
+    def find_valid_slot(self, section: str, course: str, is_lab: bool) -> Optional[Tuple[int, int, str]]:
+        duration = 3 if is_lab else 1
+        rooms = self.lab_rooms if is_lab else self.theory_rooms
+        random.shuffle(rooms)
+        
+        days = list(range(len(self.days)))
+        random.shuffle(days)
+        
+        for day in days:
+            # Skip if already has maximum lectures for this course today
+            if self.count_daily_lectures(section, day, course) >= 2:
+                continue
+                
+            for hour in range(self.hours_per_day - duration + 1):
+                if hour == self.break_hour:
+                    continue
+                    
+                # Check if slot is free
+                if not all(self.timetable[section][day][h] is None 
+                          for h in range(hour, hour + duration)):
+                    continue
+                    
+                # Check consecutive lectures constraint
+                prev_consecutive = self.count_consecutive_lectures(section, day, hour - 1, course)
+                if prev_consecutive >= self.max_consecutive_lectures:
+                    continue
+                    
+                # Find available room
+                for room in rooms:
+                    if all(not self.room_schedule[room][day][h] 
+                          for h in range(hour, hour + duration)):
+                        return day, hour, room
+        
+        return None
+
     def schedule_session(self, section: str, course: str, is_lab: bool) -> bool:
-        slot = self.find_free_slot_and_room(section, course, is_lab)
+        slot = self.find_valid_slot(section, course, is_lab)
         if not slot:
             return False
             
         day, start_hour, room = slot
         duration = 3 if is_lab else 1
-        course_name = f"{course} Lab" if is_lab else course
+        course_name = f"{course}{'Lab' if is_lab else ''}"
         
         for hour in range(start_hour, start_hour + duration):
             self.timetable[section][day][hour] = {
@@ -160,23 +235,20 @@ class TimeTableCSP:
         # Schedule labs first
         for course, hours in self.courses.items():
             if hours['lab'] > 0:
-                lab_scheduled = all(
-                    self.schedule_session(section, course, is_lab=True)
-                    for section in self.sections
-                )
-                if not lab_scheduled:
-                    return False
-        
-        # Then schedule theory classes
+                for section in self.sections:
+                    if not self.schedule_session(section, course, True):
+                        return False
+
+        # Schedule theory classes
         for course, hours in self.courses.items():
-            for _ in range(hours['theory']):
-                theory_scheduled = all(
-                    self.schedule_session(section, course, is_lab=False)
-                    for section in self.sections
-                )
-                if not theory_scheduled:
-                    return False
-        
+            theory_slots = hours['theory']
+            for section in self.sections:
+                slots_scheduled = 0
+                while slots_scheduled < theory_slots:
+                    if not self.schedule_session(section, course, False):
+                        return False
+                    slots_scheduled += 1
+
         return True
 
     def add_makeup_class(self, section: str, course: str, is_lab: bool = False) -> bool:
@@ -370,7 +442,7 @@ class TimeTableCSP:
         return f"Timetable exported to {filename}"
 
 if __name__ == "__main__":
-    scheduler = TimeTableCSP()
+    scheduler = TimeTable()
     results = scheduler.monte_carlo_simulation()
     if results['success_rate'] > 0:
         scheduler.export_to_excel()

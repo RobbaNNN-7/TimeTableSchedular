@@ -1,9 +1,12 @@
 from flask import Flask, request, jsonify, render_template, send_file
-from Module1_classTimetables.TimeTableSchedular.TimeTable import TimeTableCSP
 import os
 import json
+from TimeTable import TimeTable
 
 app = Flask(__name__)
+
+# Global variable to store the current timetable instance
+current_timetable = None
 
 @app.route('/')
 def index():
@@ -11,6 +14,7 @@ def index():
 
 @app.route('/generate', methods=['POST'])
 def generate_timetable():
+    global current_timetable
     try:
         data = request.json
         
@@ -22,7 +26,7 @@ def generate_timetable():
             }), 400
 
         # Create scheduler instance with provided data
-        scheduler = TimeTableCSP(
+        current_timetable = TimeTable(
             sections=data['sections'],
             courses=data['courses'],
             theory_rooms=data.get('theory_rooms'),
@@ -30,18 +34,19 @@ def generate_timetable():
         )
         
         # Run Monte Carlo simulation
-        results = scheduler.monte_carlo_simulation(num_iterations=1000)
+        results = current_timetable.monte_carlo_simulation(num_iterations=1000)
         
         if results['success_rate'] > 0:
             filename = "generated_timetable.xlsx"
-            scheduler.export_to_excel(filename)
+            filepath = os.path.join(app.root_path, filename)
+            current_timetable.export_to_excel(filepath)
             
             return jsonify({
                 'success': True,
                 'message': 'Timetable generated successfully!',
                 'stats': {
-                    'success_rate': (f"{results['success_rate']:.2f}%"),
-                    'best_score': (f"{results['best_score']:.2f}"),
+                    'success_rate': f"{results['success_rate']:.2f}%",
+                    'best_score': f"{results['best_score']:.2f}",
                     'filename': filename
                 }
             })
@@ -61,7 +66,13 @@ def generate_timetable():
 @app.route('/download/<filename>')
 def download_file(filename):
     try:
-        return send_file(filename, as_attachment=True)
+        filepath = os.path.join(app.root_path, filename)
+        if not os.path.exists(filepath):
+            return jsonify({
+                'success': False,
+                'message': 'Timetable file not found. Please generate a timetable first.'
+            }), 404
+        return send_file(filepath, as_attachment=True)
     except Exception as e:
         return jsonify({
             'success': False,
@@ -70,7 +81,14 @@ def download_file(filename):
 
 @app.route('/add-makeup', methods=['POST'])
 def add_makeup_class():
+    global current_timetable
     try:
+        if current_timetable is None:
+            return jsonify({
+                'success': False,
+                'message': 'No timetable exists. Please generate a timetable first.'
+            }), 400
+
         data = request.json
         required_fields = ['section', 'course', 'is_lab']
         if not all(field in data for field in required_fields):
@@ -79,9 +97,7 @@ def add_makeup_class():
                 'message': 'Missing required fields'
             }), 400
 
-        # Load existing timetable
-        scheduler = TimeTableCSP()
-        success = scheduler.add_makeup_class(
+        success = current_timetable.add_makeup_class(
             data['section'],
             data['course'],
             data.get('is_lab', False)
@@ -89,7 +105,8 @@ def add_makeup_class():
 
         if success:
             filename = "updated_timetable.xlsx"
-            scheduler.export_to_excel(filename)
+            filepath = os.path.join(app.root_path, filename)
+            current_timetable.export_to_excel(filepath)
             return jsonify({
                 'success': True,
                 'message': 'Makeup class added successfully!',
