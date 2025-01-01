@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timetable Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-8">
+    <div class="max-w-4xl mx-auto bg-white rounded-lg shadow-md p-6">
+        <h1 class="text-3xl font-bold mb-8 text-center text-gray-800">Timetable Generator</h1>
+        
+        <form id="timetableForm" class="space-y-6">
+            <!-- Sections -->
+            <div class="space-y-2">
+                <h2 class="text-xl font-semibold text-gray-700">Sections</h2>
+                <div id="sections" class="space-y-2">
+                    <div class="flex gap-2">
+                        <input type="text" class="section-input form-input flex-1 rounded border-gray-300" placeholder="Section name">
+                        <button type="button" onclick="addField('sections')" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">+</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Courses -->
+            <div class="space-y-2">
+                <h2 class="text-xl font-semibold text-gray-700">Courses</h2>
+                <div id="courses" class="space-y-2">
+                    <div class="flex gap-2">
+                        <input type="text" class="course-name form-input flex-1 rounded border-gray-300" placeholder="Course name">
+                        <input type="number" class="theory-hours form-input w-24 rounded border-gray-300" placeholder="Theory">
+                        <input type="number" class="lab-hours form-input w-24 rounded border-gray-300" placeholder="Lab">
+                        <button type="button" onclick="addCourse()" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">+</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rooms -->
+            <div class="grid grid-cols-2 gap-6">
+                <!-- Theory Rooms -->
+                <div class="space-y-2">
+                    <h2 class="text-xl font-semibold text-gray-700">Theory Rooms</h2>
+                    <div id="theory-rooms" class="space-y-2">
+                        <div class="flex gap-2">
+                            <input type="text" class="theory-room-input form-input flex-1 rounded border-gray-300" placeholder="Room name">
+                            <button type="button" onclick="addField('theory-rooms')" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">+</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lab Rooms -->
+                <div class="space-y-2">
+                    <h2 class="text-xl font-semibold text-gray-700">Lab Rooms</h2>
+                    <div id="lab-rooms" class="space-y-2">
+                        <div class="flex gap-2">
+                            <input type="text" class="lab-room-input form-input flex-1 rounded border-gray-300" placeholder="Room name">
+                            <button type="button" onclick="addField('lab-rooms')" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">+</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Generate Button -->
+            <div class="text-center">
+                <button type="submit" class="px-8 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 font-semibold">
+                    Generate Timetable
+                </button>
+            </div>
+        </form>
+
+        <!-- Results -->
+        <div id="results" class="mt-8 hidden">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">Generation Results</h2>
+            <div id="resultsContent" class="p-4 rounded border"></div>
+            
+            <!-- Makeup Class Form -->
+            <div id="makeupForm" class="mt-6 hidden">
+                <h3 class="text-lg font-semibold text-gray-700 mb-4">Add Makeup Class</h3>
+                <form id="addMakeupForm" class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <select id="makeupSection" class="form-select rounded border-gray-300" required>
+                            <!-- Will be populated dynamically -->
+                        </select>
+                        <select id="makeupCourse" class="form-select rounded border-gray-300" required>
+                            <!-- Will be populated dynamically -->
+                        </select>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" id="isLab" class="form-checkbox">
+                        <label for="isLab">Is Lab Session?</label>
+                    </div>
+                    <button type="submit" class="px-6 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                        Add Makeup Class
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function addField(containerId) {
+            const container = document.getElementById(containerId);
+            const newField = container.children[0].cloneNode(true);
+            newField.querySelector('input').value = '';
+            container.appendChild(newField);
+        }
+
+        function addCourse() {
+            const container = document.getElementById('courses');
+            const newField = container.children[0].cloneNode(true);
+            newField.querySelectorAll('input').forEach(input => input.value = '');
+            container.appendChild(newField);
+        }
+
+        function showResults(data) {
+            const resultsDiv = document.getElementById('results');
+            const resultsContent = document.getElementById('resultsContent');
+            resultsDiv.classList.remove('hidden');
+            
+            let content = `
+                <div class="space-y-2">
+                    <p><strong>Status:</strong> ${data.success ? 'Success' : 'Failed'}</p>
+                    <p><strong>Success Rate:</strong> ${data.stats.success_rate}</p>
+                    <p><strong>Best Score:</strong> ${data.stats.best_score}</p>
+                </div>
+            `;
+            
+            if (data.success) {
+                content += `
+                    <div class="mt-4">
+                        <a href="/download/${data.stats.filename}" 
+                           class="px-6 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 inline-block">
+                            Download Timetable
+                        </a>
+                    </div>
+                `;
+                document.getElementById('makeupForm').classList.remove('hidden');
+                populateMakeupSelectors();
+            }
+            
+            resultsContent.innerHTML = content;
+        }
+
+        function populateMakeupSelectors() {
+            const sectionSelect = document.getElementById('makeupSection');
+            const courseSelect = document.getElementById('makeupCourse');
+            
+            // Get sections from the main form
+            const sections = [...document.querySelectorAll('.section-input')]
+                .map(input => input.value)
+                .filter(Boolean);
+                
+            // Get courses from the main form
+            const courses = [...document.querySelectorAll('#courses > div')]
+                .map(div => div.querySelector('.course-name').value)
+                .filter(Boolean);
+            
+            // Populate selectors
+            sectionSelect.innerHTML = sections
+                .map(section => `<option value="${section}">${section}</option>`)
+                .join('');
+                
+            courseSelect.innerHTML = courses
+                .map(course => `<option value="${course}">${course}</option>`)
+                .join('');
+        }
+
+        document.getElementById('timetableForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = {
+                sections: [...document.querySelectorAll('.section-input')]
+                    .map(input => input.value)
+                    .filter(Boolean),
+                courses: Object.fromEntries(
+                    [...document.querySelectorAll('#courses > div')]
+                    .map(div => {
+                        const name = div.querySelector('.course-name').value;
+                        const theory = parseInt(div.querySelector('.theory-hours').value) || 0;
+                        const lab = parseInt(div.querySelector('.lab-hours').value) || 0;
+                        return [name, { theory, lab }];
+                    })
+                    .filter(([name]) => name)
+                ),
+                theory_rooms: [...document.querySelectorAll('.theory-room-input')]
+                    .map(input => input.value)
+                    .filter(Boolean),
+                lab_rooms: [...document.querySelectorAll('.lab-room-input')]
+                    .map(input => input.value)
+                    .filter(Boolean)
+            };
+            
+            try {
+                const response = await fetch('/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const data = await response.json();
+                showResults(data);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to generate timetable. Please try again.');
+            }
+        });
+
+        document.getElementById('addMakeupForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const makeupData = {
+                section: document.getElementById('makeupSection').value,
+                course: document.getElementById('makeupCourse').value,
+                is_lab: document.getElementById('isLab').checked
+            };
+            
+            try {
+                const response = await fetch('/add-makeup', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(makeupData)
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    alert('Makeup class added successfully!');
+                    window.location.href = `/download/${data.filename}`;
+                } else {
+                    alert(data.message);
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to add makeup class. Please try again.');
+            }
+        });
+    </script>
+</body>
+</html>
