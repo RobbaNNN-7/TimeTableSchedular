@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, jsonify, send_file
 import pandas as pd
 import json
-from run import main  # Replace with your script file
+from run import main  
 
 app = Flask(__name__)
 
@@ -16,8 +16,8 @@ def submit():
         with open('input.json', 'w') as file:
             json.dump(input_data, file, indent=4)
 
-        # Generate schedule using your script
-        main()  # Assumes `main()` processes input.json and outputs best_exam_schedule.xlsx
+        
+        main()  # Run the main function from run.py
 
         return jsonify({"status": "success", "filename": "best_exam_schedule.xlsx"})
     except Exception as e:

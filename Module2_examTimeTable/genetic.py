@@ -1,5 +1,4 @@
 from genetic_utils import *
-from csp import *
 import random
 import copy
 from datetime import datetime, timedelta
