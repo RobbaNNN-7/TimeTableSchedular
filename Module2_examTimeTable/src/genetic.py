@@ -14,15 +14,20 @@ class GeneticAlgorithm:
 
     def validate_schedule(self, schedule, batch_dept, date, timeslot):
         """
-        Enhanced validation with stricter constraints
+        Enhanced validation with stricter constraints including weekend checks
         """
+        # First check if the date is a Sunday
+        check_date = datetime.strptime(date, "%Y-%m-%d")
+        if check_date.weekday() == 6:  # 6 represents Sunday (0 is Monday)
+            return False
+
         proposed_batch, proposed_dept = batch_dept.split("_")
 
         # Check all existing exams for conflicts
         for key, exam in schedule.items():
             exam_date = exam['date']
             exam_timeslot = exam['timeslot']
-            current_batch, current_dept, _ = key.split("_")  # Split into batch, dept, subject
+            current_batch, current_dept, _ = key.split("_")
 
             # Rule 1: Same batch+department cannot have exams on same day
             if current_batch == proposed_batch and current_dept == proposed_dept:
