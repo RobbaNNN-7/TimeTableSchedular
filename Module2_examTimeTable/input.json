@@ -4,118 +4,48 @@
             "batch": "2023",
             "department": "CS",
             "sections": [
-                "A",
-                "B",
-                "C",
-                "D",
-                "E"
-            ]
-        },
-        {
-            "batch": "2024",
-            "department": "AI",
-            "sections": [
-                "A",
-                "B"
+                "A"
             ]
         }
     ],
     "subjects": [
         {
-            "name": "Islamiat",
-            "batch": "2023",
-            "department": "CS",
-            "sections": [
-                "A",
-                "B",
-                "C",
-                "D",
-                "E"
-            ],
-            "instructor": "Ammar"
-        },
-        {
-            "name": "IS",
-            "batch": "2023",
-            "department": "CS",
-            "sections": [
-                "A",
-                "B",
-                "C",
-                "D",
-                "E"
-            ],
-            "instructor": "Dr.Madiha"
-        },
-        {
-            "name": "Islamiat",
-            "batch": "2023",
-            "department": "AI",
-            "sections": [
-                "A",
-                "B"
-            ],
-            "instructor": "Ammar"
-        },
-        {
-            "name": "DSA",
-            "batch": "2024",
-            "department": "AI",
-            "sections": [
-                "A",
-                "B"
-            ],
-            "instructor": "Ammar"
-        },
-        {
             "name": "DSA",
             "batch": "2023",
             "department": "CS",
             "sections": [
-                "D"
+                "A"
             ],
-            "instructor": "Syed Imran Ali"
-        },
-        {
-            "name": "DSA",
-            "batch": "2023",
-            "department": "CS",
-            "sections": [
-                "A,B,C,E"
-            ],
-            "instructor": "Prof 2"
-        },
-        {
-            "name": "A,B,C",
-            "batch": "2023",
-            "department": "CS",
-            "sections": [
-                "A",
-                "B",
-                "C"
-            ],
-            "instructor": "Sir 1"
+            "instructor": "1"
         },
         {
             "name": "AI",
             "batch": "2023",
             "department": "CS",
             "sections": [
-                "A,B,C,E"
+                "A"
             ],
-            "instructor": "Prof 2"
+            "instructor": "2"
         },
         {
-            "name": "FOCP",
-            "batch": "2024",
-            "department": "AI",
+            "name": "IS",
+            "batch": "2023",
+            "department": "CS",
             "sections": [
-                "A",
-                "B"
+                "A"
             ],
-            "instructor": "Junaid Younas"
+            "instructor": "3"
+        },
+        {
+            "name": "Islamiat",
+            "batch": "2023",
+            "department": "CS",
+            "sections": [
+                "A"
+            ],
+            "instructor": "4"
         }
     ],
-    "startDate": "2024-12-02",
-    "endDate": "2024-12-06"
+    "startDate": "2025-01-01",
+    "endDate": "2025-01-06"
 }
